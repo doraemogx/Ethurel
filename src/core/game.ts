@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PrototypeMapScene } from '@/world/PrototypeMapScene';
+import { VarrethOutskirtsScene } from '@/world/VarrethOutskirtsScene';
 import { GAME_ZOOM, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@/core/config';
 
 /**
@@ -25,6 +25,6 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [PrototypeMapScene],
+    scene: [VarrethOutskirtsScene],
   });
 }

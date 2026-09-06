@@ -41,11 +41,12 @@ export interface SaveDataV2 {
 
 export type SaveData = SaveDataV1 | SaveDataV2;
 
-/** Único mapa jogável desta fase — o protótipo de movimento. Varreth (Fase 3)
- * introduzirá o(s) próximo(s) `mapId`. */
-export const PROTOTYPE_MAP_ID = 'prototipo-fase2';
+/** Único mapa jogável até agora: o primeiro microambiente visual, os arredores
+ * de Varreth (docs/design/06-WORLD-NARRATIVE-BIBLE.md §2) — ainda não a vila
+ * inteira. A vila completa (Fase 3+) introduzirá o(s) próximo(s) `mapId`. */
+export const VARRETH_OUTSKIRTS_MAP_ID = 'varreth-arredores';
 
-export const DEFAULT_SPAWN: PlayerSaveState = { mapId: PROTOTYPE_MAP_ID, x: 240, y: 160 };
+export const DEFAULT_SPAWN: PlayerSaveState = { mapId: VARRETH_OUTSKIRTS_MAP_ID, x: 56, y: 160 };
 
 export function createEmptySaveV2(): SaveDataV2 {
   const now = Date.now();

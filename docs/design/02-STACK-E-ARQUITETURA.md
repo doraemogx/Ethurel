@@ -103,24 +103,9 @@ interface NarrativeProvider {
 5. **Escopo das 8 classes.** Mitigação: todas as 8 recebem dados completos desde já (via efeitos componíveis, que reduzem custo de implementar cada uma); polimento visual pleno começa pela classe escolhida na slice.
 6. **Migração de save entre versões.** Mitigada por já nascer com `schemaVersion` desde a Fase 2, em vez de ser adicionada depois de o schema já ter mudado várias vezes sem controle.
 
-## 8. Direção artística — especificação inicial a validar visualmente (não congelada)
+## 8. Direção artística
 
-Antes de selecionar packs temporários (CC0 ou outros), fixamos uma linguagem visual de partida. Nenhum asset — nem temporário — entra sem obedecer a isto; recolorir um pack incompatível com estes parâmetros **não é suficiente**. **Importante:** os números de resolução/tile/escala abaixo são um **ponto de partida técnico, não uma decisão irreversível**. O objetivo visual real é pixel art **moderna, limpa e detalhada o suficiente para leitura confortável em celular** — não um estilo extremamente low-res "por obrigação". A Fase 2 (protótipo de movimento) serve justamente para avaliar escala, legibilidade e aparência num Android real antes de congelarmos esses valores; se 16×16/320×180 ficar granulado ou pouco detalhado na tela, subimos a resolução lógica e o tile size (ex.: 32×32 ou maior) sem custo arquitetural, já que tudo é parametrizado, não hardcoded no motor.
-
-| Parâmetro | Definição inicial (a validar na Fase 2) |
-|---|---|
-| Resolução lógica de referência | 320×180 (proporção 16:9, escala inteira para telas maiores) — resolução de design interna, não a resolução real da tela. **Hipótese a testar visualmente, não fixada.** |
-| Tile size | 16×16 px como unidade base do tileset. **Hipótese a testar** — pode subir para 32×32 se a leitura em Android pedir mais detalhe. |
-| Escala do personagem | Personagem jogável ocupa ~16×24 a 16×32 px (mais alto que um tile, padrão de RPG top-down clássico). **Proporcional ao tile size escolhido**, não um valor absoluto fixo. |
-| Perspectiva | Top-down com leve 3/4 (ângulo que mostra topo de objetos curtos e frente de objetos altos — paredes, árvores) |
-| Proporção personagem/cenário | Personagem visivelmente menor que construções (uma casa deve ter várias vezes sua altura), preservando leitura de escala do mundo |
-| Frames mínimos de animação | idle: 2 frames · walk: 4 frames · attack: 3 frames · hit: 1-2 frames · death: 4 frames (por direção, 4 direções) |
-| Densidade visual | Cenário legível a distância de braço em tela de celular — evitar excesso de detalhe por tile que vire ruído em telas pequenas |
-| Iluminação | Luz direcional suave, sombras curtas e discretas (não iluminação dinâmica complexa nesta fase) — clima "fim de tarde/crepúsculo" como padrão tonal |
-| Paleta base | Pedra, pergaminho/marfim envelhecido, madeira, musgo, verde dessaturado, cinza, azul-noturno, âmbar, vermelho profundo — nunca preto puro dominante, nunca roxo neon |
-| Linguagem visual do Arcane | Orgânico: veios de luz baça, esporos, bioluminescência, raízes — nunca eletricidade/raio, nunca "magia roxa genérica"; cor/intensidade da partícula muda por zona (Controle discreto → Saturação perceptível → Ruptura intenso), nunca por classe isoladamente (a classe define a *forma* da partícula — brasa, símbolo, folha, pedra, sombra — a zona define *intensidade*) |
-
-Assets temporários (CC0/packs gratuitos) só entram se puderem ser ajustados a esta tabela (tile size, paleta, perspectiva) sem descaracterizar a leitura — caso um pack não sirva nem com ajuste de cor, buscamos outro em vez de forçar.
+Movida para `docs/design/05-DIRECAO-DE-ARTE.md`, que é agora a fonte única da linguagem visual (paleta, tile size, escala, perspectiva, VFX, situação real de assets externos neste ambiente). Esta seção existia como rascunho inicial antes da Fase 2 confirmar o protótipo num Android real — não editar aqui; editar lá.
 
 ## 9. Mobile UX (formal)
 
