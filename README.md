@@ -26,7 +26,13 @@ npm run build       # build de produção em dist/
 npm run preview     # serve o build de produção (para testar antes de publicar)
 ```
 
-## Como testar no seu Android
+## Como testar no seu Android (hoje, durante o desenvolvimento)
+
+**Isto exige um computador seu rodando o servidor** — é só para desenvolvimento
+local. **Não é** o critério de aprovação da Fase 2: a partir da Fase 2, o
+projeto precisa estar publicado numa URL HTTPS acessível direto no Android,
+sem depender de nenhum computador seu ligado (ver
+`docs/design/04-VERTICAL-SLICE-E-ROADMAP.md §3`).
 
 1. No computador onde este projeto está rodando, execute `npm run dev`.
 2. O terminal mostra duas URLs: uma `Local` (só funciona no próprio computador)
@@ -36,7 +42,9 @@ npm run preview     # serve o build de produção (para testar antes de publicar
 4. Abra essa URL `Network` no Chrome do celular.
 5. Você deve ver a tela "ETHUREL" com um contador de sessão. Feche a aba e
    abra a URL de novo — o número da sessão deve subir. Isso confirma que o
-   save está funcionando no seu aparelho.
+   save funciona nesse teste manual no seu aparelho (diferente do teste
+   automatizado do projeto, que usa reload de página, não fechar/reabrir —
+   ver `FASE1_VALIDACAO.md §3.3`).
 
 Se o celular não conseguir acessar a URL de rede, geralmente é o firewall do
 computador bloqueando a porta 5173 — nesse caso me avise.

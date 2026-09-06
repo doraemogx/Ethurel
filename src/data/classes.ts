@@ -31,6 +31,25 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 1,
     baseAttrs: { vigor: 4, reflexo: 2, mente: 3, presenca: 2 },
     startingItems: ['Lâmina curta de bordas irregulares', 'Bandagens ritualizadas'],
+    // Identidade central da classe: dano cresce com o risco acumulado em combate.
+    // Modelado como stack componível (não como `if` de código) — cada início de
+    // turno soma +1 de ataque, até 5 stacks, durando até o fim do combate.
+    passives: [
+      {
+        type: 'Trigger',
+        event: 'onTurnStart',
+        effects: [
+          {
+            type: 'ModifyStat',
+            stat: 'atk',
+            delta: 1,
+            duration: { kind: 'untilCombatEnd' },
+            stacking: { max: 5, onReapply: 'add' },
+            target: 'self',
+          },
+        ],
+      },
+    ],
     abilities: [
       {
         id: 'golpe-cindra',
@@ -85,6 +104,7 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 1,
     baseAttrs: { vigor: 2, reflexo: 3, mente: 4, presenca: 2 },
     startingItems: ['Cajado dobrável de vidro-fumo', 'Caderno de padrões incompletos'],
+    passives: [],
     abilities: [
       {
         id: 'fio-arcano',
@@ -101,7 +121,13 @@ export const CLASSES: ClassDefinition[] = [
         cost: 6,
         tensionGain: 22,
         effects: [
-          { type: 'ApplyStatus', status: 'silenciado', duration: { kind: 'turns', value: 2 }, target: 'target' },
+          {
+            type: 'ApplyStatus',
+            status: 'silenciado',
+            category: 'negative',
+            duration: { kind: 'turns', value: 2 },
+            target: 'target',
+          },
         ],
       },
       {
@@ -138,6 +164,7 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 0.9,
     baseAttrs: { vigor: 3, reflexo: 4, mente: 2, presenca: 2 },
     startingItems: ['Arco curto e carcaz', 'Kit de armadilhas de fenda'],
+    passives: [],
     abilities: [
       {
         id: 'marca-do-rastro',
@@ -145,12 +172,25 @@ export const CLASSES: ClassDefinition[] = [
         tier: 'controle',
         cost: 3,
         tensionGain: 9,
+        // "Facilita os próximos ataques": a marca dura o combate inteiro, e o
+        // bônus de precisão condicionado a ela (HasMark) também precisa durar
+        // — não é um bônus instantâneo aplicado na própria ação de marcar
+        // (que não ataca nada), é um bônus persistente enquanto o alvo estiver
+        // marcado.
         effects: [
           { type: 'MarkTarget', tag: 'rastreado', duration: { kind: 'untilCombatEnd' }, target: 'target' },
           {
             type: 'ConditionalEffect',
             condition: { type: 'HasMark', tag: 'rastreado', target: 'target' },
-            then: [{ type: 'ModifyStat', stat: 'accuracy', delta: 3, duration: { kind: 'instant' }, target: 'self' }],
+            then: [
+              {
+                type: 'ModifyStat',
+                stat: 'accuracy',
+                delta: 3,
+                duration: { kind: 'untilCombatEnd' },
+                target: 'self',
+              },
+            ],
           },
         ],
       },
@@ -161,7 +201,13 @@ export const CLASSES: ClassDefinition[] = [
         cost: 6,
         tensionGain: 24,
         effects: [
-          { type: 'ApplyStatus', status: 'preso', duration: { kind: 'turns', value: 2 }, target: 'target' },
+          {
+            type: 'ApplyStatus',
+            status: 'preso',
+            category: 'negative',
+            duration: { kind: 'turns', value: 2 },
+            target: 'target',
+          },
           { type: 'Damage', amount: 6, target: 'target' },
         ],
       },
@@ -198,6 +244,7 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 1.3,
     baseAttrs: { vigor: 2, reflexo: 4, mente: 2, presenca: 3 },
     startingItems: ['Par de adagas negras', 'Fragmento do contrato (nunca totalmente lido)'],
+    passives: [],
     abilities: [
       {
         id: 'veu-de-sombra',
@@ -258,6 +305,23 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 0.75,
     baseAttrs: { vigor: 4, reflexo: 2, mente: 2, presenca: 3 },
     startingItems: ['Escudo entalhado com o símbolo do juramento', 'Corrente de contenção arcana'],
+    // Passiva: mitigação inata sempre ativa em combate — a identidade de "linha
+    // de frente defensiva" não depende de nenhuma habilidade ser usada.
+    passives: [
+      {
+        type: 'Trigger',
+        event: 'onCombatStart',
+        effects: [
+          {
+            type: 'ModifyStat',
+            stat: 'mitigation',
+            delta: 10,
+            duration: { kind: 'untilCombatEnd' },
+            target: 'self',
+          },
+        ],
+      },
+    ],
     abilities: [
       {
         id: 'voto-de-bastiao',
@@ -273,11 +337,22 @@ export const CLASSES: ClassDefinition[] = [
         tier: 'saturacao',
         cost: 6,
         tensionGain: 20,
-        // FORA DO ESCOPO DA VERTICAL SLICE: depende de 'ally', que é só extensibilidade
-        // futura enquanto não houver decisão de design sobre grupo/companions
-        // (docs/design/03-GAMEPLAY-E-COMBATE.md §3 e §7). Definida aqui para preservar
-        // o conceito de classe; não é usável nem testada nos encontros da slice.
-        effects: [{ type: 'Shield', amount: 10, duration: { kind: 'turns', value: 2 }, target: 'ally' }],
+        // Versão solo plenamente utilizável na vertical slice (revisão: a versão
+        // anterior dependia de 'ally', inexistente enquanto não houver party).
+        // Mantém a identidade "linha que não cede": escudo maior que o de
+        // Controle + mitigação adicional temporária. Uma variante que redireciona
+        // dano de um aliado pode voltar como evolução/habilidade separada quando
+        // companions forem projetados (docs/design/03-GAMEPLAY-E-COMBATE.md §7).
+        effects: [
+          { type: 'Shield', amount: 12, duration: { kind: 'untilCombatEnd' }, target: 'self' },
+          {
+            type: 'ModifyStat',
+            stat: 'mitigation',
+            delta: 20,
+            duration: { kind: 'turns', value: 2 },
+            target: 'self',
+          },
+        ],
       },
       {
         id: 'ultima-muralha',
@@ -287,7 +362,13 @@ export const CLASSES: ClassDefinition[] = [
         tensionGain: 40,
         effects: [
           { type: 'ModifyStat', stat: 'mitigation', delta: 50, duration: { kind: 'turns', value: 2 }, target: 'self' },
-          { type: 'ApplyStatus', status: 'exausto', duration: { kind: 'turns', value: 2 }, target: 'self' },
+          {
+            type: 'ApplyStatus',
+            status: 'exausto',
+            category: 'negative',
+            duration: { kind: 'turns', value: 2 },
+            target: 'self',
+          },
         ],
       },
     ],
@@ -313,6 +394,10 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 0.8,
     baseAttrs: { vigor: 2, reflexo: 2, mente: 3, presenca: 4 },
     startingItems: ['Cajado entrelaçado com raízes vivas', 'Bolsa de esporos secos'],
+    // Todas as habilidades já são alvo 'self' — plenamente utilizável em solo na
+    // vertical slice. A cura em aliados é a extensão natural quando houver party
+    // (ver nota em Guardião do Bastião); a classe não depende disso para funcionar.
+    passives: [],
     abilities: [
       {
         id: 'toque-de-musgo',
@@ -320,8 +405,6 @@ export const CLASSES: ClassDefinition[] = [
         tier: 'controle',
         cost: 3,
         tensionGain: 8,
-        // Alvo 'self' na vertical slice (sem party); a cura em aliados é a extensão
-        // natural desta habilidade quando houver grupo (ver nota em Guardião do Bastião).
         effects: [{ type: 'Heal', amount: 6, target: 'self' }],
       },
       {
@@ -330,9 +413,13 @@ export const CLASSES: ClassDefinition[] = [
         tier: 'saturacao',
         cost: 6,
         tensionGain: 22,
+        // "Remove uma condição": corrigido para remoção por categoria — o tipo
+        // anterior (`RemoveStatus{status:'condicao_negativa'}`) tratava uma
+        // categoria como se fosse um id de status específico, o que não tem
+        // semântica válida (RemoveStatus remove exatamente o id informado).
         effects: [
           { type: 'Heal', amount: 14, target: 'self' },
-          { type: 'RemoveStatus', status: 'condicao_negativa', target: 'self' },
+          { type: 'RemoveStatusByCategory', category: 'negative', target: 'self' },
         ],
       },
       {
@@ -343,7 +430,7 @@ export const CLASSES: ClassDefinition[] = [
         tensionGain: 42,
         effects: [
           { type: 'Heal', amount: 24, target: 'self' },
-          { type: 'RemoveStatus', status: 'condicao_negativa', target: 'self' },
+          { type: 'RemoveStatusByCategory', category: 'negative', target: 'self' },
           { type: 'ModifyStat', stat: 'atk', delta: -2, duration: { kind: 'turns', value: 2 }, target: 'self' },
         ],
       },
@@ -370,6 +457,7 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 1.1,
     baseAttrs: { vigor: 2, reflexo: 2, mente: 4, presenca: 3 },
     startingItems: ['Cordas marcadas com símbolos apagados', 'Máscara de pano sem rosto'],
+    passives: [],
     abilities: [
       {
         id: 'no-silencioso',
@@ -378,7 +466,13 @@ export const CLASSES: ClassDefinition[] = [
         cost: 3,
         tensionGain: 9,
         effects: [
-          { type: 'ApplyStatus', status: 'imobilizado', duration: { kind: 'turns', value: 1 }, target: 'target' },
+          {
+            type: 'ApplyStatus',
+            status: 'imobilizado',
+            category: 'negative',
+            duration: { kind: 'turns', value: 1 },
+            target: 'target',
+          },
         ],
       },
       {
@@ -388,7 +482,13 @@ export const CLASSES: ClassDefinition[] = [
         cost: 6,
         tensionGain: 23,
         effects: [
-          { type: 'ApplyStatus', status: 'confuso', duration: { kind: 'turns', value: 2 }, target: 'target' },
+          {
+            type: 'ApplyStatus',
+            status: 'confuso',
+            category: 'negative',
+            duration: { kind: 'turns', value: 2 },
+            target: 'target',
+          },
         ],
       },
       {
@@ -398,7 +498,13 @@ export const CLASSES: ClassDefinition[] = [
         cost: 10,
         tensionGain: 44,
         effects: [
-          { type: 'ApplyStatus', status: 'anulado', duration: { kind: 'turns', value: 1 }, target: 'target' },
+          {
+            type: 'ApplyStatus',
+            status: 'anulado',
+            category: 'negative',
+            duration: { kind: 'turns', value: 1 },
+            target: 'target',
+          },
           { type: 'ModifyStat', stat: 'def', delta: -3, duration: { kind: 'turns', value: 2 }, target: 'self' },
         ],
       },
@@ -425,6 +531,7 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 1.15,
     baseAttrs: { vigor: 2, reflexo: 3, mente: 3, presenca: 3 },
     startingItems: ['Punhado de ossos entalhados', 'Bolsa de fragmentos de sorte'],
+    passives: [],
     abilities: [
       {
         id: 'lance-simples',

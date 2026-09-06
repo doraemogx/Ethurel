@@ -10,7 +10,7 @@
 | Linguagem | **TypeScript** | Pega erros de tipo antes de rodar, e ajuda a impor a regra "classes/itens/inimigos/habilidades são dados tipados, não texto solto". |
 | Build/dev server | **Vite** | Build rápido, hot-reload, e gera um `build` estático simples (HTML+JS+assets) que serve tanto para PWA quanto para o wrapper Capacitor. |
 | Persistência local | `localStorage` (web) / **Capacitor Preferences + Filesystem** (quando empacotado como app) | Ver seção 4 — agora ativa desde a Fase 2, não só na Fase 7. |
-| Empacotamento | **PWA instalável agora** → **Capacitor** para gerar APK quando quisermos | Ver seção 6. |
+| Empacotamento | **PWA instalável (planejado)** → **Capacitor** para gerar APK quando quisermos | Ver seção 6 — ainda não implementado; sem manifest/service worker no código atual. |
 | Camada de IA | Abstração `NarrativeProvider` desde já; backend real **adiado** | Ver seção 5. |
 
 **Alternativas consideradas e por que não:** Godot (fluxo centrado em editor gráfico, pior ajuste ao fluxo "Claude Code edita arquivos" e "você desenvolve pelo celular"), Unity (pesado demais para 2D mobile-first indie), React/Canvas puro sem engine (reinventaria câmera/colisão/tilemap/animação que o Phaser já resolve), React Native/Unity nativo direto (fricção de setup Android sem ganho real para um 2D tile-based).
@@ -89,9 +89,10 @@ interface NarrativeProvider {
 
 ## 6. Empacotamento: PWA → Capacitor
 
-- **Agora:** o build do Vite já sai como PWA instalável (manifest + service worker) — no Android, "Adicionar à tela inicial" já dá ícone próprio, tela cheia, funciona offline para o núcleo do jogo (que é 100% do jogo, já que a IA é opcional).
+- **Planejado, ainda não implementado:** o objetivo é que o build do Vite saia como PWA instalável (manifest + service worker) — no Android, "Adicionar à tela inicial" daria ícone próprio, tela cheia, funcionaria offline para o núcleo do jogo (que é 100% do jogo, já que a IA é opcional). **Correção (revisão pós-Fase 1):** isso ainda não existe no código — não há `manifest.json`, ícones nem service worker em `public/` ou referenciados em `index.html` hoje. Nenhuma documentação deve afirmar "já é uma PWA instalável" até isso ser implementado de fato.
 - **Depois:** **Capacitor** empacota esse mesmo build web dentro de um app Android real (gera `.apk`/`.aab`), reaproveitando 100% do código.
 - Instalar dependências (Android SDK/Studio) só será feito quando chegarmos nessa fase, com explicação e confirmação prévia.
+- **Requisito de teste no Android (adicionado após revisão da Fase 1):** independentemente de PWA/Capacitor, ao final da Fase 2 o usuário precisa de uma URL HTTPS acessível diretamente no Android, sem depender de um computador seu rodando `npm run dev` — ver `04-VERTICAL-SLICE-E-ROADMAP.md §3` (critério de saída da Fase 2).
 
 ## 7. Riscos técnicos identificados
 

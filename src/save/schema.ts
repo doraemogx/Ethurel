@@ -8,6 +8,11 @@
  * NPCs conhecidos, inventário, quests, combate, etc. — sempre com uma nova
  * interface `SaveDataVN` e uma função de migração nomeada, nunca uma edição
  * silenciosa do shape anterior.
+ *
+ * `CharacterAppearance` (src/player/types.ts) já existe como tipo, mas ainda
+ * NÃO faz parte deste schema — só entra quando `CharacterModel` completo for
+ * integrado ao save (junto com stats/classe/origem, na Fase 4), não nesta
+ * correção pontual. `SaveDataV1` aqui continua sendo só o dev check da Fase 1.
  */
 export const CURRENT_SCHEMA_VERSION = 1 as const;
 

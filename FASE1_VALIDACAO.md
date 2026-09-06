@@ -1467,6 +1467,16 @@ RESULTADO: OK — sessionCount incrementou 1 -> 2 -> 3, schemaVersion estável e
 (exit code 0)
 ```
 
+**Limitação registrada (correção pós-revisão):** este teste valida persistência
+entre **reloads de página** (F5/recarregar) servidos por `vite preview` num
+Chromium headless neste ambiente — isso já prova que a escrita/leitura em
+`localStorage` funciona. Isso **não é equivalente** a fechar e reabrir a aba ou
+o aplicativo num Android real (processo do navegador encerrado por completo,
+memória do dispositivo liberada, etc.), o que ainda não foi testado. Esse teste
+real em aparelho físico é obrigatório e fica pendente até existir uma build
+publicada acessível diretamente no Android — critério formal de saída da
+Fase 2 (`docs/design/04-VERTICAL-SLICE-E-ROADMAP.md §3`), não desta Fase 1.
+
 ### 3.4. `git status`
 
 ```

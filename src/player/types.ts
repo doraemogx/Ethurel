@@ -3,6 +3,31 @@ import type { IndoleState, ReputationState } from '@/social/indole';
 
 export type Gender = 'homem' | 'mulher';
 
+export type SkinTone = 'palida' | 'clara' | 'morena' | 'escura';
+export type HairStyle = 'curto' | 'longo' | 'preso' | 'raspado';
+export type HairColor = 'preto' | 'castanho' | 'louro' | 'grisalho' | 'ruivo' | 'branco';
+
+/**
+ * Cor de destaque do sigilo — paleta de Ethurel (docs/design/02-STACK-E-ARQUITETURA.md §8),
+ * não neon/roxo genérico. É a cor de base do sigilo do personagem; durante o
+ * jogo, a cor do sigilo passa a refletir a zona de Arcane atual (ver
+ * `src/arcane/zone.ts`) — isto aqui é só a escolha visual de criação.
+ */
+export type SigilAccent = 'esmeralda' | 'ambar' | 'azul-noturno' | 'vermelho-profundo' | 'osso' | 'ardosia';
+
+/**
+ * Estrutura mínima e extensível de aparência para a vertical slice — apenas as
+ * escolhas que já têm representação visual planejada (sprite/paleta/sigilo).
+ * Não é um character creator completo; é o suficiente para a aparência
+ * escolhida na criação ter um valor determinístico persistido no save.
+ */
+export interface CharacterAppearance {
+  skinTone: SkinTone;
+  hairStyle: HairStyle;
+  hairColor: HairColor;
+  sigilAccent: SigilAccent;
+}
+
 export interface OriginDefinition {
   id: string;
   name: string;
@@ -27,6 +52,7 @@ export interface OriginDefinition {
 export interface CharacterModel {
   name: string;
   gender: Gender;
+  appearance: CharacterAppearance;
   classId: string;
   originId: string;
   attrs: Attrs;

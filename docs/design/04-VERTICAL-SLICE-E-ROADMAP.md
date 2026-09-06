@@ -85,7 +85,7 @@ Equipamento/itens: apenas os 6-10 itens definidos em `03-GAMEPLAY-E-COMBATE.md �
 |---|---|---|
 | **0 — Auditoria** | Documentos de design (`docs/design/*`) | Aprovação do usuário |
 | **1 — Game/Tech design** | Arquitetura de dados (classes/itens/inimigos/quests/mapa/efeitos), especificação de direção artística fechada, setup do projeto (Phaser+TS+Vite), **esqueleto do `SaveStore` + `schemaVersion:1`** já criado (vazio) | Projeto builda e roda no navegador do celular; save grava/lê um objeto vazio versionado |
-| **2 — Protótipo de movimento** | Mapa mínimo + personagem + câmera pixel-perfect + colisão + joystick virtual/touch + **save já integrado** (posição, mapa atual) + **validação visual em Android real de resolução lógica/tile size/escala de personagem** (`02-STACK-E-ARQUITETURA.md §8`), congelando os valores só depois desse teste | Anda, colide, fecha e reabre sem perder posição; escala/legibilidade aprovadas visualmente antes de seguir para a Fase 3 |
+| **2 — Protótipo de movimento** | Mapa mínimo + personagem + câmera pixel-perfect + colisão + joystick virtual/touch + **save já integrado** (posição, mapa atual) + **validação visual em Android real de resolução lógica/tile size/escala de personagem** (`02-STACK-E-ARQUITETURA.md §8`), congelando os valores só depois desse teste + **URL HTTPS de preview acessível direto no Android** (ver nota abaixo) | Anda, colide, fecha e reabre sem perder posição (teste real no aparelho, não só reload); escala/legibilidade aprovadas visualmente antes de seguir para a Fase 3 |
 | **3 — Vertical slice de Varreth** | Ambiente completo (com a Raiz Rompida) + NPCs + interação contextual + diálogo; **save integra** NPCs conhecidos/flags | Anda, conversa, entra em 1 interior; estado de diálogo sobrevive a fechar/reabrir |
 | **4 — RPG core** | Stats, inventário, equipamento mínimo, sistema de quest estruturado (a quest piloto); **save integra** inventário/quests | Recebe e progride a quest com objetivos verificáveis, persistente |
 | **5 — Combate** | **Gate: especificação de balanceamento formal** (§1 de `03-GAMEPLAY-E-COMBATE.md`) antes de codar; motor de efeitos componíveis; bestiário inicial; Arcane com zonas redesenhadas e gerenciamento de Tensão; **save integra** HP/Foco/Tensão/Marca | Vence o combate da quest, ganha loot real, Tensão sobe e pode ser gerenciada |
@@ -93,6 +93,22 @@ Equipamento/itens: apenas os 6-10 itens definidos em `03-GAMEPLAY-E-COMBATE.md �
 | **7 — Save (fase dedicada)** | Integração final do schema completo, migração de versão, export/import com confirmação, recuperação de falha | Teste obrigatório: fechar/reabrir preserva tudo, inclusive após uma migração simulada |
 | **8 — Polish** | Pixel art definitiva onde já der, partículas, áudio final, UX/feedback tátil, ajustes de Mobile UX (`02-STACK-E-ARQUITETURA.md §9`) | Vertical slice "parece um jogo de verdade" num celular Android |
 | **9 — IA opcional (pós-slice)** | `RemoteNarrativeProvider` real + backend/proxy serverless, só depois de a Fase 8 fechar e a slice já ser comprovadamente divertida sem IA | IA liga/desliga sem quebrar nada; nunca decide regra, só enriquece texto |
+
+### Critério obrigatório de saída da Fase 2: teste real no Android (adicionado após revisão da Fase 1)
+
+O usuário desenvolve/testa principalmente pelo celular e não pode depender de um
+computador seu rodando `npm run dev` para validar o jogo — o teste local via
+rede Wi-Fi descrito no `README.md` atual é só para desenvolvimento, não é
+suficiente para aprovar a Fase 2. Por isso, **ao final da Fase 2** (antes de
+pedir aprovação para a Fase 3), o protótipo precisa estar publicado numa **URL
+HTTPS acessível diretamente no navegador do Android**, sem exigir nenhum
+computador ligado. Opções como GitHub Pages (ou outra solução de preview/deploy
+apropriada ao repositório, gratuita e sem exigir credenciais novas) são
+aceitáveis; nenhum serviço externo pago será escolhido, e nenhuma credencial
+será solicitada, sem consultar o usuário antes. **O protótipo da Fase 2 não
+será considerado aprovado apenas com teste local no ambiente do Claude Code**
+— o teste real de fechar/reabrir no aparelho Android, usando essa URL, é
+obrigatório antes da aprovação.
 
 ## 4. O que NÃO faremos ainda
 

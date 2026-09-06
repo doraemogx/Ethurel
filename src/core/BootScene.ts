@@ -6,9 +6,14 @@ const DEV_CHECK_SAVE_KEY = 'dev_boot_check';
 
 /**
  * Cena mínima da Fase 1 — prova que o pipeline Phaser+Vite renderiza no
- * navegador e que o SaveStore persiste um objeto versionado entre sessões
- * (feche a aba/app e reabra: "Sessão nº" deve incrementar). Não é a cena de
- * jogo real — mapa/personagem/câmera/colisão são escopo da Fase 2.
+ * navegador e que o SaveStore persiste um objeto versionado em localStorage.
+ * O teste automatizado (Playwright) recarrega a página (reload) e confirma que
+ * "Sessão nº" incrementa — isso já valida a escrita/leitura em localStorage,
+ * mas reload NÃO é o mesmo teste que fechar e reabrir a aba/app fisicamente
+ * num aparelho Android; esse teste real fica pendente até existir uma build
+ * acessível no celular (ver critério de saída da Fase 2 em
+ * docs/design/04-VERTICAL-SLICE-E-ROADMAP.md §3). Não é a cena de jogo real —
+ * mapa/personagem/câmera/colisão são escopo da Fase 2.
  */
 export class BootScene extends Phaser.Scene {
   constructor() {

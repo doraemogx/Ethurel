@@ -39,6 +39,14 @@ export type StatKey = 'atk' | 'def' | 'mitigation' | 'accuracy' | 'evasion';
 
 export type TriggerEvent = 'onHit' | 'onDamaged' | 'onTurnStart' | 'onCombatStart';
 
+/**
+ * Categoria de um status aplicado — existe para permitir remoção genérica por
+ * categoria (ex.: "remova uma condição negativa", sem saber qual especificamente)
+ * sem depender de string mágica nem de código específico por classe. Toda
+ * `ApplyStatus` declara sua categoria; `RemoveStatusByCategory` a consome.
+ */
+export type StatusCategory = 'negative' | 'positive' | 'neutral';
+
 export type Effect =
   | { type: 'Damage'; amount: number; target: TargetRef }
   | { type: 'Heal'; amount: number; target: TargetRef }
@@ -46,11 +54,13 @@ export type Effect =
   | {
       type: 'ApplyStatus';
       status: string;
+      category: StatusCategory;
       duration: Duration;
       stacking?: StackingRule;
       target: TargetRef;
     }
   | { type: 'RemoveStatus'; status: string; target: TargetRef }
+  | { type: 'RemoveStatusByCategory'; category: StatusCategory; target: TargetRef }
   | {
       type: 'ModifyStat';
       stat: StatKey;

@@ -1,4 +1,4 @@
-import type { Ability } from '@/effects/types';
+import type { Ability, Effect } from '@/effects/types';
 
 export interface Attrs {
   vigor: number;
@@ -32,6 +32,13 @@ export interface ClassDefinition {
   baseAttrs: Attrs;
   /** Descrição textual dos itens iniciais — vira referência a Item.id real na Fase 4. */
   startingItems: string[];
+  /**
+   * Efeitos passivos sempre ativos da classe (ex.: o stack de risco do Portador
+   * de Cinza, a mitigação inata do Guardião do Bastião) — mesmo vocabulário de
+   * efeitos das habilidades, tipicamente via `Trigger`. Array vazio para classes
+   * cuja identidade já é totalmente carregada pelas 3 habilidades.
+   */
+  passives: Effect[];
   abilities: [Ability, Ability, Ability]; // uma por tier: controle, saturacao, ruptura
   evolutions: [ClassEvolution, ClassEvolution, ClassEvolution];
 }
