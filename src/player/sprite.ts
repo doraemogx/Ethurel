@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { CharacterAnimationSet } from '@/player/animation';
 
 /**
  * Sprite do jogador — pixel art desenhada por código (ver
@@ -77,6 +78,18 @@ function drawCharacterFrame(
   g.fillStyle(0x8fae86, 1);
   g.fillRect(ox + 9, h - 15 + bob, 1, 1);
 }
+
+/**
+ * Só os estados que realmente existem nesta build (ver src/player/animation.ts).
+ * attack/cast/hurt/death ficam de fora do objeto — ausentes, não vazios —
+ * para que qualquer código futuro que os consuma precise checar presença.
+ */
+export const PLAYER_ANIMATIONS: CharacterAnimationSet = {
+  idle: { frames: [PLAYER_FRAMES.idleA, PLAYER_FRAMES.idleB], frameDurationMs: 500, loop: true },
+  walkDown: { frames: [PLAYER_FRAMES.walkDownA, PLAYER_FRAMES.walkDownB], frameDurationMs: 160, loop: true },
+  walkUp: { frames: [PLAYER_FRAMES.walkUpA, PLAYER_FRAMES.walkUpB], frameDurationMs: 160, loop: true },
+  walkSide: { frames: [PLAYER_FRAMES.walkSideA, PLAYER_FRAMES.walkSideB], frameDurationMs: 160, loop: true },
+};
 
 export function ensurePlayerTexture(scene: Phaser.Scene): void {
   if (scene.textures.exists(PLAYER_TEXTURE_KEY)) return;

@@ -1,17 +1,18 @@
 import Phaser from 'phaser';
 import { VarrethOutskirtsScene } from '@/world/VarrethOutskirtsScene';
-import { GAME_ZOOM, LOGICAL_HEIGHT, LOGICAL_WIDTH } from '@/core/config';
+import { GAME_ZOOM, LOGICAL_HEIGHT, computeLogicalWidth } from '@/core/config';
 
 /**
- * Config do Phaser. Resolução lógica e zoom seguem `src/core/config.ts` —
- * HIPÓTESE a validar visualmente num Android real na Fase 2, não uma decisão
- * congelada (docs/design/02-STACK-E-ARQUITETURA.md §8).
+ * Config do Phaser. Altura lógica e tile size seguem `src/core/config.ts`
+ * (validados na Fase 2); a LARGURA lógica é calculada a partir da proporção
+ * real da tela no momento do boot, para eliminar letterboxing em landscape
+ * ultrawide sem esticar/cortar pixel art — ver comentário em `config.ts`.
  */
 export function createGame(parent: HTMLElement): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent,
-    width: LOGICAL_WIDTH,
+    width: computeLogicalWidth(),
     height: LOGICAL_HEIGHT,
     zoom: GAME_ZOOM,
     pixelArt: true,

@@ -1,9 +1,7 @@
 import Phaser from 'phaser';
 import { VirtualJoystick } from '@/player/VirtualJoystick';
-import { ensurePlayerTexture, PLAYER_FRAMES, PLAYER_FRAME_HEIGHT, PLAYER_TEXTURE_KEY } from '@/player/sprite';
-
-const IDLE_BOB_MS = 500;
-const WALK_STEP_MS = 160;
+import { ensurePlayerTexture, PLAYER_ANIMATIONS, PLAYER_FRAME_HEIGHT, PLAYER_FRAMES, PLAYER_TEXTURE_KEY } from '@/player/sprite';
+import { getClip, type AnimationState } from '@/player/animation';
 
 export interface PlayerControllerOptions {
   speed?: number;
@@ -18,7 +16,8 @@ export class PlayerController {
   private joystick: VirtualJoystick;
   private speed: number;
   private animTimer = 0;
-  private stepToggle = 0;
+  private animFrameIndex = 0;
+  private animState: AnimationState = 'idle';
   private facing: Facing = 'down';
   private facingLeft = false;
 
@@ -88,26 +87,31 @@ export class PlayerController {
     this.updateFacing(dir);
     this.sprite.setFlipX(this.facing === 'side' && this.facingLeft);
 
-    this.animTimer += deltaMs;
+    const nextState: AnimationState = !moving
+      ? 'idle'
+      : this.facing === 'down'
+        ? 'walkDown'
+        : this.facing === 'up'
+          ? 'walkUp'
+          : 'walkSide';
 
-    if (moving) {
-      if (this.animTimer > WALK_STEP_MS) {
+    if (nextState !== this.animState) {
+      this.animState = nextState;
+      this.animTimer = 0;
+      this.animFrameIndex = 0;
+    }
+
+    // Estados sem clipe registrado (attack/cast/hurt/death — ver
+    // src/player/animation.ts) simplesmente não têm o que tocar ainda;
+    // isso nunca deveria acontecer para idle/walk*, mas o código não assume.
+    const clip = getClip(PLAYER_ANIMATIONS, this.animState);
+    if (clip) {
+      this.animTimer += deltaMs;
+      if (this.animTimer > clip.frameDurationMs) {
         this.animTimer = 0;
-        this.stepToggle = this.stepToggle === 0 ? 1 : 0;
+        this.animFrameIndex = (this.animFrameIndex + 1) % clip.frames.length;
       }
-      const frame =
-        this.facing === 'down'
-          ? this.stepToggle === 0 ? PLAYER_FRAMES.walkDownA : PLAYER_FRAMES.walkDownB
-          : this.facing === 'up'
-            ? this.stepToggle === 0 ? PLAYER_FRAMES.walkUpA : PLAYER_FRAMES.walkUpB
-            : this.stepToggle === 0 ? PLAYER_FRAMES.walkSideA : PLAYER_FRAMES.walkSideB;
-      this.sprite.setFrame(frame);
-    } else {
-      if (this.animTimer > IDLE_BOB_MS) {
-        this.animTimer = 0;
-        this.stepToggle = this.stepToggle === 0 ? 1 : 0;
-      }
-      this.sprite.setFrame(this.stepToggle === 0 ? PLAYER_FRAMES.idleA : PLAYER_FRAMES.idleB);
+      this.sprite.setFrame(clip.frames[this.animFrameIndex]);
     }
 
     // Y-sorting simples: quem está mais abaixo na tela desenha por cima.

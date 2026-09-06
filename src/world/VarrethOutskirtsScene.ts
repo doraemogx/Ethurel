@@ -2,16 +2,49 @@ import Phaser from 'phaser';
 import { PlayerController } from '@/player/PlayerController';
 import { loadOrCreateSave, persistPlayerState } from '@/save/gameSave';
 import { DEFAULT_SPAWN, VARRETH_OUTSKIRTS_MAP_ID, type SaveDataV2 } from '@/save/schema';
-import { GAME_ZOOM, LOGICAL_HEIGHT, LOGICAL_WIDTH, TILE_SIZE } from '@/core/config';
+import { GAME_ZOOM, TILE_SIZE } from '@/core/config';
 
 const MAP_WIDTH_TILES = 30;
 const MAP_HEIGHT_TILES = 20;
-const GROUND_TILESET_KEY = 'ground-varreth';
 const SAVE_THROTTLE_MS = 500;
 
-const GRASS_A = 0;
-const GRASS_B = 1;
-const PATH_TILE = 2;
+/**
+ * Kenney "Tiny Town" (CC0) — tileset 12×11, 16×16px, empacotado sem espaçamento.
+ * Ver CREDITS.md para licença/proveniência completas. Índices conferidos por
+ * inspeção visual direta do arquivo recebido (linha-major, 12 colunas).
+ */
+const TILESET_KEY = 'kenney-tinytown';
+const TILESET_URL = 'assets/kenney/tinytown_tilemap_packed.png';
+
+const TILE = {
+  grass: 0,
+  grassFlowerSmall: 1,
+  grassFlowerBig: 2,
+  grassPebbles: 43,
+  pathPlain: 39,
+  pathPlainAlt: 40,
+  // 3/4 são só a metade superior (copa) de árvores de 2 tiles — sozinhos
+  // ficam com aparência de "arco oco". 5 é um arbusto completo num único
+  // tile; 29 é um par de cogumelos, também completo.
+  bushRound: 5,
+  mushrooms: 29,
+} as const;
+
+const DECO_TEXTURES = {
+  /** Aglomerado de mata 3×3 (não é "uma árvore grande" — é um grupo de várias
+   * árvores pequenas pré-composto pelo próprio pack). Bom para borda densa de
+   * floresta; ruim isolado (fica com buracos entre as copas). Usado só na
+   * borda da clareira. */
+  bigPine: 'deco-kt-big-pine',
+  bigAutumn: 'deco-kt-big-autumn',
+  /** Árvore única de verdade: copa (topo) + tronco (base), 1 tile de largura
+   * por 2 de altura — verificado isoladamente antes de usar (copa+base
+   * corretas: 3+15 e 4+16; 3+27/4+28 ficam com a junção quebrada). Usada para
+   * árvores isoladas dentro da clareira. */
+  treeOrange: 'deco-kt-tree-orange',
+  treeGreen: 'deco-kt-tree-green',
+  hut: 'deco-kt-hut',
+} as const;
 
 /**
  * Primeiro microambiente visual de Ethurel — arredores de Varreth (uma
@@ -19,124 +52,93 @@ const PATH_TILE = 2;
  * e docs/design/06-WORLD-NARRATIVE-BIBLE.md §2 para o que isto representa (e
  * não representa ainda) narrativamente.
  *
- * Ainda é pixel art gerada por código (sem assets externos — motivo
- * documentado em 05-DIRECAO-DE-ARTE.md §1), mas com paleta, variação de tile,
- * borda natural (árvores/rochas em vez de parede de blocos), profundidade
- * (Y-sorting) e um aceno discreto a Arcane, em vez do mapa de teste da Fase 2.
+ * Terreno e decoração agora vêm do Kenney Tiny Town (CC0, ver CREDITS.md) em
+ * vez de pixel art gerada por código — árvores grandes e a cabana são
+ * composições de tiles originais do próprio pack (RenderTexture), não tiles
+ * redesenhados. A pedra com veio de Arcane continua procedural, de propósito
+ * (nenhum pack recebido tem um elemento apropriado para isso).
  */
 
-function ensureGroundTileset(scene: Phaser.Scene): void {
-  if (scene.textures.exists(GROUND_TILESET_KEY)) return;
-  const g = scene.make.graphics({ x: 0, y: 0 }, false);
+function ensureDecorComposites(scene: Phaser.Scene): void {
+  const drawFrameAt = (rt: Phaser.GameObjects.RenderTexture, frame: number, x: number, y: number): void => {
+    const tmp = scene.add.image(0, 0, TILESET_KEY, frame).setOrigin(0, 0).setVisible(false);
+    rt.draw(tmp, x, y);
+    tmp.destroy();
+  };
 
-  // GRASS_A — verde-musgo base
-  g.fillStyle(0x3a4a34, 1);
-  g.fillRect(GRASS_A * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-  g.fillStyle(0x445a3d, 1);
-  g.fillRect(GRASS_A * TILE_SIZE + 2, 2, 3, 3);
-  g.fillRect(GRASS_A * TILE_SIZE + 9, 6, 3, 3);
-  g.fillRect(GRASS_A * TILE_SIZE + 5, 11, 3, 3);
+  const composite = (
+    key: string,
+    layout: { frame: number; x: number; y: number }[],
+    width: number,
+    height: number = width
+  ): void => {
+    if (scene.textures.exists(key)) return;
+    const rt = scene.make.renderTexture({ width, height }, false);
+    for (const { frame, x, y } of layout) drawFrameAt(rt, frame, x, y);
+    rt.saveTexture(key);
+    rt.destroy();
+  };
 
-  // GRASS_B — variante mais escura/quente, evita leitura de grade repetida
-  g.fillStyle(0x354330, 1);
-  g.fillRect(GRASS_B * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-  g.fillStyle(0x4a5c3f, 1);
-  g.fillRect(GRASS_B * TILE_SIZE + 6, 3, 2, 2);
-  g.fillRect(GRASS_B * TILE_SIZE + 2, 9, 2, 2);
-  g.fillRect(GRASS_B * TILE_SIZE + 11, 10, 2, 2);
-  g.fillStyle(0x2e3a2a, 1);
-  g.fillRect(GRASS_B * TILE_SIZE + 8, 8, 2, 2);
+  // Árvore grande — composta a partir do bloco de pinheiro 3×3 do próprio
+  // tileset (índices 6,7,8 / 18,19,20 / 30,31,32), dando escala real de
+  // "árvore mais alta que o personagem/cabana", não um tile solto de 16px.
+  composite(
+    DECO_TEXTURES.bigPine,
+    [
+      { frame: 6, x: 0, y: 0 }, { frame: 7, x: 16, y: 0 }, { frame: 8, x: 32, y: 0 },
+      { frame: 18, x: 0, y: 16 }, { frame: 19, x: 16, y: 16 }, { frame: 20, x: 32, y: 16 },
+      { frame: 30, x: 0, y: 32 }, { frame: 31, x: 16, y: 32 }, { frame: 32, x: 32, y: 32 },
+    ],
+    48
+  );
 
-  // PATH_TILE — terra batida
-  g.fillStyle(0x6b5a3f, 1);
-  g.fillRect(PATH_TILE * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-  g.fillStyle(0x5c4c35, 1);
-  g.fillRect(PATH_TILE * TILE_SIZE + 3, 4, 2, 2);
-  g.fillRect(PATH_TILE * TILE_SIZE + 10, 9, 2, 2);
-  g.fillStyle(0x7d6a4a, 1);
-  g.fillRect(PATH_TILE * TILE_SIZE + 7, 12, 2, 2);
+  // Variante outonal (índices 9,10,11 / 21,22,23 / 33,34,35), para não repetir
+  // sempre a mesma árvore na borda da clareira.
+  composite(
+    DECO_TEXTURES.bigAutumn,
+    [
+      { frame: 9, x: 0, y: 0 }, { frame: 10, x: 16, y: 0 }, { frame: 11, x: 32, y: 0 },
+      { frame: 21, x: 0, y: 16 }, { frame: 22, x: 16, y: 16 }, { frame: 23, x: 32, y: 16 },
+      { frame: 33, x: 0, y: 32 }, { frame: 34, x: 16, y: 32 }, { frame: 35, x: 32, y: 32 },
+    ],
+    48
+  );
 
-  g.generateTexture(GROUND_TILESET_KEY, TILE_SIZE * 3, TILE_SIZE);
-  g.destroy();
+  // Árvore única (verificada isoladamente antes de usar — ver nota em DECO_TEXTURES).
+  composite(DECO_TEXTURES.treeOrange, [{ frame: 3, x: 0, y: 0 }, { frame: 15, x: 0, y: 16 }], 16, 32);
+  composite(DECO_TEXTURES.treeGreen, [{ frame: 4, x: 0, y: 0 }, { frame: 16, x: 0, y: 16 }], 16, 32);
+
+  // Cabana — telhado (48 = telha, 63 = empena/gable centralizada) sobre
+  // parede de madeira (72/73) com porta (84) centralizada na fileira térrea.
+  // Composição direta a partir da adjacência observada em Sample.png do pack.
+  composite(
+    DECO_TEXTURES.hut,
+    [
+      { frame: 48, x: 0, y: 0 }, { frame: 63, x: 16, y: 0 }, { frame: 48, x: 32, y: 0 },
+      { frame: 72, x: 0, y: 16 }, { frame: 73, x: 16, y: 16 }, { frame: 72, x: 32, y: 16 },
+      { frame: 72, x: 0, y: 32 }, { frame: 84, x: 16, y: 32 }, { frame: 73, x: 32, y: 32 },
+    ],
+    48
+  );
 }
 
-const DECO = {
-  tree: { key: 'deco-tree', w: 22, h: 34 },
-  rock: { key: 'deco-rock', w: 14, h: 10 },
-  hut: { key: 'deco-hut', w: 42, h: 38 },
-  arcaneStone: { key: 'deco-arcane-stone', w: 12, h: 14 },
-} as const;
+const ARCANE_STONE_KEY = 'deco-arcane-stone';
 
-function ensureDecorTextures(scene: Phaser.Scene): void {
-  // Árvore: copa irregular (não círculo perfeito) + tronco.
-  if (!scene.textures.exists(DECO.tree.key)) {
-    const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    const { w, h } = DECO.tree;
-    g.fillStyle(0x241d14, 0.35);
-    g.fillEllipse(w / 2, h - 2, 14, 4); // sombra de contato
-    g.fillStyle(0x4a3826, 1);
-    g.fillRect(w / 2 - 3, h - 14, 6, 12); // tronco
-    g.fillStyle(0x2f4a2c, 1);
-    g.fillEllipse(w / 2, h - 20, 20, 16);
-    g.fillEllipse(w / 2 - 7, h - 16, 12, 10);
-    g.fillEllipse(w / 2 + 8, h - 17, 13, 11);
-    g.fillStyle(0x3d5c37, 1);
-    g.fillEllipse(w / 2 - 3, h - 24, 12, 9);
-    g.fillEllipse(w / 2 + 6, h - 23, 9, 8);
-    g.generateTexture(DECO.tree.key, w, h);
-    g.destroy();
-  }
-
-  // Rocha: aglomerado simples, tom de pedra da paleta.
-  if (!scene.textures.exists(DECO.rock.key)) {
-    const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    const { w, h } = DECO.rock;
-    g.fillStyle(0x241d14, 0.3);
-    g.fillEllipse(w / 2, h - 1, 10, 3);
-    g.fillStyle(0x55534d, 1);
-    g.fillEllipse(w / 2, h - 5, w - 2, h - 3);
-    g.fillStyle(0x6a675e, 1);
-    g.fillEllipse(w / 2 - 2, h - 7, 6, 5);
-    g.generateTexture(DECO.rock.key, w, h);
-    g.destroy();
-  }
-
-  // Cabana: silhueta rústica de madeira/palha — assentamento de fronteira.
-  if (!scene.textures.exists(DECO.hut.key)) {
-    const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    const { w, h } = DECO.hut;
-    g.fillStyle(0x241d14, 0.3);
-    g.fillEllipse(w / 2, h - 1, 34, 5);
-    // corpo
-    g.fillStyle(0x5a4530, 1);
-    g.fillRect(4, h - 20, w - 8, 18);
-    g.fillStyle(0x4a3826, 1);
-    g.fillRect(4, h - 20, w - 8, 3);
-    // porta
-    g.fillStyle(0x241d14, 1);
-    g.fillRect(w / 2 - 5, h - 12, 10, 12);
-    // telhado (triângulo de palha)
-    g.fillStyle(0x7a6a3f, 1);
-    g.fillTriangle(0, h - 18, w, h - 18, w / 2, h - 36);
-    g.fillStyle(0x6a5c35, 1);
-    g.fillTriangle(0, h - 18, w / 2, h - 18, w / 2, h - 36);
-    g.generateTexture(DECO.hut.key, w, h);
-    g.destroy();
-  }
-
-  // Pedra com veio de Arcane — aceno discreto, orgânico (nunca elétrico/roxo).
-  if (!scene.textures.exists(DECO.arcaneStone.key)) {
-    const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    const { w, h } = DECO.arcaneStone;
-    g.fillStyle(0x241d14, 0.3);
-    g.fillEllipse(w / 2, h - 1, 10, 3);
-    g.fillStyle(0x4a4a42, 1);
-    g.fillEllipse(w / 2, h - 6, w - 2, h - 4);
-    g.fillStyle(0x6fae7a, 0.85); // veio bioluminescente esverdeado
-    g.fillRect(w / 2 - 1, 2, 2, h - 8);
-    g.generateTexture(DECO.arcaneStone.key, w, h);
-    g.destroy();
-  }
+function ensureArcaneStoneTexture(scene: Phaser.Scene): void {
+  // Único elemento ainda procedural — nenhum pack recebido tem algo
+  // apropriado para Arcane (orgânico/bioluminescente); ver CREDITS.md.
+  if (scene.textures.exists(ARCANE_STONE_KEY)) return;
+  const g = scene.make.graphics({ x: 0, y: 0 }, false);
+  const w = 12;
+  const h = 14;
+  g.fillStyle(0x241d14, 0.3);
+  g.fillEllipse(w / 2, h - 1, 10, 3);
+  g.fillStyle(0x4a4a42, 1);
+  g.fillEllipse(w / 2, h - 6, w - 2, h - 4);
+  g.fillStyle(0x6fae7a, 0.85);
+  g.fillRect(w / 2 - 1, 2, 2, h - 8);
+  g.generateTexture(ARCANE_STONE_KEY, w, h);
+  g.destroy();
 }
 
 function buildGroundData(pathTiles: Set<string>): number[][] {
@@ -145,12 +147,15 @@ function buildGroundData(pathTiles: Set<string>): number[][] {
     const row: number[] = [];
     for (let x = 0; x < MAP_WIDTH_TILES; x++) {
       if (pathTiles.has(`${x},${y}`)) {
-        row.push(PATH_TILE);
+        const hp = (x * 928371 + y * 123457) % 7;
+        row.push(hp === 0 ? TILE.pathPlainAlt : TILE.pathPlain);
         continue;
       }
-      // Alternância pseudo-aleatória determinística — evita leitura de grade.
-      const hash = (x * 928371 + y * 123457) % 5;
-      row.push(hash === 0 ? GRASS_B : GRASS_A);
+      const h = (x * 928371 + y * 123457) % 20;
+      if (h === 0) row.push(TILE.grassPebbles);
+      else if (h < 4) row.push(TILE.grassFlowerSmall);
+      else if (h < 6) row.push(TILE.grassFlowerBig);
+      else row.push(TILE.grass);
     }
     data.push(row);
   }
@@ -182,15 +187,19 @@ export class VarrethOutskirtsScene extends Phaser.Scene {
     super('VarrethOutskirtsScene');
   }
 
+  preload(): void {
+    this.load.spritesheet(TILESET_KEY, TILESET_URL, { frameWidth: TILE_SIZE, frameHeight: TILE_SIZE });
+  }
+
   create(): void {
     this.save = loadOrCreateSave();
-    ensureGroundTileset(this);
-    ensureDecorTextures(this);
+    ensureDecorComposites(this);
+    ensureArcaneStoneTexture(this);
 
     const pathTiles = buildPathTiles();
     const groundData = buildGroundData(pathTiles);
     const map = this.make.tilemap({ data: groundData, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
-    const tileset = map.addTilesetImage(GROUND_TILESET_KEY, GROUND_TILESET_KEY, TILE_SIZE, TILE_SIZE, 0, 0)!;
+    const tileset = map.addTilesetImage(TILESET_KEY, TILESET_KEY, TILE_SIZE, TILE_SIZE, 0, 0)!;
     map.createLayer(0, tileset, 0, 0);
 
     const worldWidth = MAP_WIDTH_TILES * TILE_SIZE;
@@ -205,7 +214,7 @@ export class VarrethOutskirtsScene extends Phaser.Scene {
         ? { x: this.save.player.x, y: this.save.player.y }
         : { x: DEFAULT_SPAWN.x, y: DEFAULT_SPAWN.y };
 
-    this.player = new PlayerController(this, spawn.x, spawn.y, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+    this.player = new PlayerController(this, spawn.x, spawn.y, this.scale.width, this.scale.height);
     this.physics.add.collider(this.player.sprite, decorGroup);
 
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
@@ -214,7 +223,7 @@ export class VarrethOutskirtsScene extends Phaser.Scene {
     this.cameras.main.roundPixels = true;
 
     this.add
-      .text(4, 4, `Ethurel — arredores de Varreth (protótipo visual)\nres ${LOGICAL_WIDTH}x${LOGICAL_HEIGHT} · tile ${TILE_SIZE}px · zoom ${GAME_ZOOM}x`, {
+      .text(4, 4, `Ethurel — arredores de Varreth\ntile ${TILE_SIZE}px · zoom ${GAME_ZOOM}x · Kenney Tiny Town (CC0)`, {
         fontFamily: 'sans-serif',
         fontSize: '6px',
         color: '#e8dcc4',
@@ -234,45 +243,85 @@ export class VarrethOutskirtsScene extends Phaser.Scene {
     const isPath = (tx: number, ty: number) => pathTiles.has(`${tx},${ty}`);
     const toWorld = (tx: number, ty: number) => ({ x: tx * TILE_SIZE + TILE_SIZE / 2, y: ty * TILE_SIZE + TILE_SIZE });
 
-    const addCollidable = (key: string, tx: number, ty: number, bodyW: number, bodyH: number): void => {
+    // Aglomerado de mata (3×3) — só para a borda, onde a densidade cobre as
+    // lacunas entre copas (ver nota em DECO_TEXTURES).
+    const addForestClump = (tx: number, ty: number, variant: 'pine' | 'autumn'): void => {
       const { x, y } = toWorld(tx, ty);
+      const key = variant === 'pine' ? DECO_TEXTURES.bigPine : DECO_TEXTURES.bigAutumn;
       const obj = decorGroup.create(x, y, key) as Phaser.Physics.Arcade.Sprite;
       obj.setOrigin(0.5, 1);
       obj.setDepth(y);
       const body = obj.body as Phaser.Physics.Arcade.StaticBody;
-      body.setSize(bodyW, bodyH);
-      body.setOffset((obj.width - bodyW) / 2, obj.height - bodyH);
+      body.setSize(14, 10);
+      body.setOffset((obj.width - 14) / 2, obj.height - 10);
       body.updateFromGameObject();
     };
 
-    // Borda natural (árvores/rochas), pulando a entrada do caminho e a área do rio de tiles do caminho.
+    // Árvore única — para dentro da clareira, onde um aglomerado isolado
+    // ficaria com aparência de buraco/quebrado (ver DECO_TEXTURES).
+    const addSingleTree = (tx: number, ty: number, variant: 'orange' | 'green'): void => {
+      const { x, y } = toWorld(tx, ty);
+      const key = variant === 'orange' ? DECO_TEXTURES.treeOrange : DECO_TEXTURES.treeGreen;
+      const obj = decorGroup.create(x, y, key) as Phaser.Physics.Arcade.Sprite;
+      obj.setOrigin(0.5, 1);
+      obj.setDepth(y);
+      const body = obj.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(8, 6);
+      body.setOffset((obj.width - 8) / 2, obj.height - 6);
+      body.updateFromGameObject();
+    };
+
+    const addHut = (tx: number, ty: number): void => {
+      const { x, y } = toWorld(tx, ty);
+      const obj = decorGroup.create(x, y, DECO_TEXTURES.hut) as Phaser.Physics.Arcade.Sprite;
+      obj.setOrigin(0.5, 1);
+      obj.setDepth(y);
+      const body = obj.body as Phaser.Physics.Arcade.StaticBody;
+      body.setSize(40, 14);
+      body.setOffset((obj.width - 40) / 2, obj.height - 14);
+      body.updateFromGameObject();
+    };
+
+    const addBush = (tx: number, ty: number, frame: number): void => {
+      // Puramente decorativo (sem colisão) — variedade de vegetação rasteira.
+      const { x, y } = toWorld(tx, ty);
+      const img = this.add.image(x, y - TILE_SIZE / 2, TILESET_KEY, frame).setOrigin(0.5, 1).setScale(1.4);
+      img.setDepth(y - 1);
+    };
+
+    // Borda natural da clareira — aglomerados de mata densos, pulando a
+    // entrada do caminho (espaçados a cada 2 tiles: se sobrepõem um pouco,
+    // e é isso que lê como "parede de floresta", não uma árvore quebrada).
     for (let tx = 0; tx < MAP_WIDTH_TILES; tx += 2) {
-      if (!isPath(tx, 0)) addCollidable(DECO.tree.key, tx, 0, 8, 8);
-      if (!isPath(tx, MAP_HEIGHT_TILES - 1)) addCollidable(DECO.tree.key, tx, MAP_HEIGHT_TILES - 1, 8, 8);
+      if (!isPath(tx, 0)) addForestClump(tx, 0, tx % 4 === 0 ? 'autumn' : 'pine');
+      if (!isPath(tx, MAP_HEIGHT_TILES - 1)) addForestClump(tx, MAP_HEIGHT_TILES - 1, tx % 4 === 0 ? 'autumn' : 'pine');
     }
     for (let ty = 1; ty < MAP_HEIGHT_TILES - 1; ty += 2) {
-      if (!isPath(0, ty)) addCollidable(DECO.tree.key, 0, ty, 8, 8);
-      if (!isPath(MAP_WIDTH_TILES - 1, ty)) addCollidable(DECO.tree.key, MAP_WIDTH_TILES - 1, ty, 8, 8);
+      if (!isPath(0, ty)) addForestClump(0, ty, 'pine');
+      if (!isPath(MAP_WIDTH_TILES - 1, ty)) addForestClump(MAP_WIDTH_TILES - 1, ty, 'pine');
     }
 
-    // Aglomerados interiores (evitando o caminho), para variar a silhueta sem virar labirinto.
-    const interiorTrees: [number, number][] = [
-      [6, 4], [7, 5], [22, 5], [23, 6], [5, 15], [6, 16], [24, 13], [25, 14],
+    // Árvores isoladas dentro da clareira (evitando o caminho), para variar
+    // a silhueta sem repetir a mesma espécie — cada uma é uma árvore única
+    // de verdade (copa+tronco), não um aglomerado.
+    const interiorTrees: [number, number, 'orange' | 'green'][] = [
+      [6, 4, 'green'], [22, 5, 'orange'], [5, 15, 'green'], [24, 13, 'orange'],
     ];
-    for (const [tx, ty] of interiorTrees) addCollidable(DECO.tree.key, tx, ty, 8, 8);
+    for (const [tx, ty, variant] of interiorTrees) addSingleTree(tx, ty, variant);
 
-    const rocks: [number, number][] = [
-      [10, 4], [12, 16], [22, 16], [4, 12],
+    // Arbustos/cogumelos — detalhe de vegetação rasteira, sem bloquear o caminho.
+    const bushes: [number, number, number][] = [
+      [10, 4, TILE.bushRound], [12, 16, TILE.mushrooms], [22, 16, TILE.bushRound], [4, 12, TILE.mushrooms],
     ];
-    for (const [tx, ty] of rocks) addCollidable(DECO.rock.key, tx, ty, 8, 5);
+    for (const [tx, ty, frame] of bushes) addBush(tx, ty, frame);
 
     // Cabana — ponto de referência de "assentamento", não interior jogável ainda.
-    addCollidable(DECO.hut.key, 19, 16, 20, 10);
+    addHut(19, 16);
 
     // Aceno discreto de Arcane, perto da cabana mas fora do caminho direto.
     const arcaneTile = { x: 21, y: 14 };
     const arcaneWorld = toWorld(arcaneTile.x, arcaneTile.y);
-    const stone = this.add.image(arcaneWorld.x, arcaneWorld.y, DECO.arcaneStone.key).setOrigin(0.5, 1);
+    const stone = this.add.image(arcaneWorld.x, arcaneWorld.y, ARCANE_STONE_KEY).setOrigin(0.5, 1);
     stone.setDepth(arcaneWorld.y);
     const glow = this.add.circle(arcaneWorld.x, arcaneWorld.y - 8, 6, 0x6fae7a, 0.35);
     glow.setDepth(arcaneWorld.y + 0.1);
