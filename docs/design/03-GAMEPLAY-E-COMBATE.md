@@ -48,19 +48,46 @@ A IA (quando existir uma camada de IA ativa, ver `02-STACK-E-ARQUITETURA.md §5`
 
 ## 3. Classes e habilidades: sistema de efeitos componíveis
 
-Em vez de uma função de código por classe, cada habilidade/passiva é uma **lista de efeitos de dados**, resolvida por um motor genérico (`src/effects/`). Vocabulário de efeitos:
+Em vez de uma função de código por classe, cada habilidade/passiva é uma **lista de efeitos de dados**, resolvida por um motor genérico (`src/effects/`). Esta seção define formalmente `Condition`, `Duration`, stacking e remoção — a versão anterior deste documento usava esses conceitos nos exemplos sem o tipo `Effect` realmente suportá-los; esta é a correção antes de qualquer implementação.
 
 ```ts
-type Target = 'self' | 'ally' | 'enemy' | 'allEnemies' | 'allAllies';
+// 'ally' e 'allAllies' existem no tipo só como EXTENSIBILIDADE FUTURA — party/companions
+// não faz parte do escopo atual. Nenhuma habilidade da vertical slice usa esses valores;
+// todo alvo real hoje é 'self' (o próprio conjurador) ou 'target' (o inimigo selecionado).
+type TargetRef = 'self' | 'target' | 'ally' | 'allAllies';
+
+type Duration =
+  | { kind: 'instant' }               // resolve e não deixa estado (dano, cura pontual)
+  | { kind: 'turns'; value: number }  // dura N turnos, decrementado a cada início de turno do portador
+  | { kind: 'untilCombatEnd' }        // dura até o combate atual terminar
+  | { kind: 'permanent' };            // não expira por tempo, só por remoção explícita
+
+interface StackingRule {
+  max: number;                        // stacks máximos
+  onReapply: 'refresh' | 'add' | 'ignore'; // refresh: reinicia duração; add: soma stack; ignore: reaplicação não faz nada além do limite
+}
+
+type Condition =
+  | { type: 'HasStatus'; status: string; target: TargetRef }
+  | { type: 'HasMark'; tag: string; target: TargetRef }
+  | { type: 'IsFirstActionInCombat' }
+  | { type: 'HpBelowPercent'; percent: number; target: TargetRef }
+  | { type: 'TensionZoneIs'; zone: 'controle'|'saturacao'|'ruptura' }
+  | { type: 'IndoleAtLeast'; trait: string; value: number }
+  | { type: 'IndoleBelow'; trait: string; value: number }
+  | { type: 'And'; conditions: Condition[] }
+  | { type: 'Or'; conditions: Condition[] }
+  | { type: 'Not'; condition: Condition };
 
 type Effect =
-  | { type: 'Damage'; amount: number; target: Target }
-  | { type: 'Heal'; amount: number; target: Target }
-  | { type: 'Shield'; amount: number; duration?: number; target: Target }
-  | { type: 'ApplyStatus'; status: string; duration: number; target: Target }
-  | { type: 'ModifyStat'; stat: 'atk'|'def'|'mitigation'|'accuracy'|'evasion'; delta: number; duration?: number; target: Target }
-  | { type: 'ModifyTension'; amount: number; target: Target }
-  | { type: 'MarkTarget'; tag: string; target: Target }
+  | { type: 'Damage'; amount: number; target: TargetRef }
+  | { type: 'Heal'; amount: number; target: TargetRef }
+  | { type: 'Shield'; amount: number; duration: Duration; target: TargetRef }
+  | { type: 'ApplyStatus'; status: string; duration: Duration; stacking?: StackingRule; target: TargetRef }
+  | { type: 'RemoveStatus'; status: string; target: TargetRef }   // remoção explícita (ex.: cura removendo uma condição)
+  | { type: 'ModifyStat'; stat: 'atk'|'def'|'mitigation'|'accuracy'|'evasion'; delta: number; duration: Duration; stacking?: StackingRule; target: TargetRef }
+  | { type: 'ModifyTension'; amount: number; target: TargetRef }
+  | { type: 'MarkTarget'; tag: string; duration: Duration; target: TargetRef }
   | { type: 'ConditionalEffect'; condition: Condition; then: Effect[]; else?: Effect[] }
   | { type: 'Trigger'; event: 'onHit'|'onDamaged'|'onTurnStart'|'onCombatStart'; effects: Effect[] }
   | { type: 'RandomEffect'; outcomes: { weight: number; effects: Effect[] }[] };
@@ -71,20 +98,20 @@ interface Ability {
 }
 ```
 
-**Exemplos concretos (substituindo os antigos "hooks" por classe):**
+**Exemplos concretos, agora expressáveis por completo pelo vocabulário acima (sem `if` por classe):**
 
-| Classe | Como fica em efeitos componíveis |
+| Classe | Efeitos (corrigidos: duração, stacking e condição explícitos) |
 |---|---|
-| Portador de Cinza | `Trigger{onTurnStart}` acumula `ModifyStat{atk,+N,duration:combat}` (stack de risco), resetado ao fim do combate — tudo dados, sem função dedicada. |
-| Tecelão do Véu | Habilidade de controle = `ApplyStatus{'silenciado', duration:2}` num alvo — resolução determinística padrão do motor. |
-| Caçador de Fissuras | `MarkTarget{'rastreado'}` + `ConditionalEffect` que dá `ModifyStat{accuracy,+X}` contra alvo marcado. |
-| Lâmina Silenciosa | `ConditionalEffect{condition: isFirstActionInCombat, then:[ModifyStat{atk,+N}]}`. |
-| Guardião do Bastião | `Shield{amount:N}` (Voto de Bastião) + passiva `ModifyStat{mitigation,+N%,duration:combat}`. **Redirecionamento de dano de aliado fica fora da slice** (ver §7). |
-| Arauto do Musgo | `Heal{amount:N}` + `ApplyStatus{remove:'condição'}` compostos no mesmo efeito de habilidade. |
-| Andarilho do Selo | `ApplyStatus{'imobilizado', duration:1}` ou `'confuso'` — duração fixa em turnos, não interpretação livre. |
+| Portador de Cinza | `Trigger{event:'onTurnStart', effects:[ModifyStat{stat:'atk', delta:+N, duration:{kind:'untilCombatEnd'}, stacking:{max:5, onReapply:'add'}, target:'self'}]}` — stack de risco que soma a cada turno, limitado a 5, dura até o fim do combate. |
+| Tecelão do Véu | `ApplyStatus{status:'silenciado', duration:{kind:'turns', value:2}, target:'target'}`. |
+| Caçador de Fissuras | `MarkTarget{tag:'rastreado', duration:{kind:'untilCombatEnd'}, target:'target'}`; a próxima habilidade usa `ConditionalEffect{condition:{type:'HasMark', tag:'rastreado', target:'target'}, then:[ModifyStat{stat:'accuracy', delta:+X, duration:{kind:'instant'}, target:'self'}]}` — a precisão bônus é do conjurador, condicionada à marca estar no alvo. |
+| Lâmina Silenciosa | `ConditionalEffect{condition:{type:'IsFirstActionInCombat'}, then:[ModifyStat{stat:'atk', delta:+N, duration:{kind:'instant'}, target:'self'}]}`. |
+| Guardião do Bastião | Passiva: `Trigger{event:'onCombatStart', effects:[ModifyStat{stat:'mitigation', delta:+N, duration:{kind:'untilCombatEnd'}, target:'self'}]}`. Habilidade (Voto de Bastião): `Shield{amount:N, duration:{kind:'untilCombatEnd'}, target:'self'}`. **Redirecionamento de dano de aliado fica fora da slice** — dependeria de `target:'ally'`, que hoje é só extensibilidade futura (ver §7). |
+| Arauto do Musgo | `Heal{amount:N, target:'self'}` + `RemoveStatus{status:'condicao_negativa', target:'self'}` no mesmo efeito de habilidade — remoção explícita, não um parâmetro implícito de `ApplyStatus`. |
+| Andarilho do Selo | `ApplyStatus{status:'imobilizado', duration:{kind:'turns', value:1}, target:'target'}` — duração fixa em turnos, não interpretação livre. |
 | Lançador de Ossos | `RandomEffect{outcomes:[{weight, effects:[...]}, ...]}` — aleatoriedade determinística dentro de uma tabela fixa, com seed do RNG do jogo (não "a IA inventa o resultado"). |
 
-Código especializado (bespoke) é reservado para o caso em que este vocabulário realmente não expressa uma mecânica — hoje, nenhuma das 8 classes exige isso.
+Código especializado (bespoke) é reservado para o caso em que este vocabulário realmente não expressa uma mecânica — com `Condition`/`Duration`/stacking/remoção formalizados, nenhuma das 8 classes exige isso hoje.
 
 ## 4. Arcane no gameplay — zonas com identidade mecânica própria (redesenho)
 
@@ -174,7 +201,7 @@ Diálogo estruturado como árvore curta (nó NPC → 2-4 respostas → reação)
 
 ## 9. Índole e Reputação — formalização (12 dimensões + testemunhas)
 
-**Regra central:** Índole muda sempre que o personagem age, **independentemente de haver testemunha**. Reputação só muda quando a ação é **conhecida** por um NPC/facção relevante. O rótulo (`indoleLabel`) continua existindo, mas é **apenas uma síntese de apresentação** — nunca a base de uma condição de jogo.
+**Regra central (corrigida):** não é "Índole muda sempre que o personagem age". A regra é: **eventos moral ou comportamentalmente relevantes podem alterar as dimensões de Índole, independentemente de haver testemunha.** Ações neutras (sem peso moral/comportamental) simplesmente não definem `indoleDelta` — não geram mudança nenhuma. Reputação continua dependendo estritamente de conhecimento/testemunhas. O rótulo (`indoleLabel`) continua existindo, mas é **apenas uma síntese de apresentação** — nunca a base de uma condição de jogo.
 
 ```ts
 interface IndoleState { [trait: string]: number }  // as 12 dimensões, fonte de verdade
@@ -187,18 +214,20 @@ function condition(indole: IndoleState) {
 
 interface WorldEvent {
   id: string;
-  indoleDelta?: { trait: string; delta: number }[];      // sempre aplicado
+  indoleDelta?: { trait: string; delta: number }[];      // OMITIDO/vazio em eventos neutros; presente só quando o evento tem peso moral/comportamental
   reputationDelta?: { entity: string; delta: number }[]; // só aplicado se conhecido
   witnesses: 'none' | 'public' | string[];               // quem sabe: ninguém, todo mundo, ou lista de NPCs/facções específicos
 }
 
 function resolveWorldEvent(event: WorldEvent) {
-  applyIndole(event.indoleDelta);                         // incondicional
+  if (event.indoleDelta) applyIndole(event.indoleDelta);   // condicional à relevância do evento, incondicional a testemunhas
   if (event.witnesses !== 'none') {
     applyReputation(event.reputationDelta, event.witnesses); // condicional ao conhecimento
   }
 }
 ```
+
+Na prática: quem decide se um evento tem `indoleDelta` é quem desenha a quest/diálogo/combate (autoria, não um gatilho automático por "qualquer ação") — um golpe de rotina num inimigo já hostil normalmente não altera Índole; a decisão de poupar, trair, mentir ou manipular alguém, sim.
 
 Isso é deliberadamente simples: **não é uma simulação social** (não há propagação de rumores, memória de NPC por NPC, ou cálculo de quem conta para quem — isso pode vir depois, se fizer sentido). É só um campo `witnesses` em cada evento narrativo relevante, decidido no momento em que o evento é definido (na quest/diálogo/combate), que já basta para separar mecanicamente os dois sistemas e permitir a consequência dupla pedida na quest piloto (§ver `04-VERTICAL-SLICE-E-ROADMAP.md §1`).
 
