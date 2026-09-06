@@ -37,7 +37,25 @@ export type Condition =
 
 export type StatKey = 'atk' | 'def' | 'mitigation' | 'accuracy' | 'evasion';
 
-export type TriggerEvent = 'onHit' | 'onDamaged' | 'onTurnStart' | 'onCombatStart';
+/**
+ * 'onOffensiveAction' dispara toda vez que o portador executa uma ação ofensiva
+ * (ataque básico ou habilidade com alvo), avaliado no contexto DAQUELE alvo
+ * específico — permite condicionar um efeito ao alvo atual da ação possuir uma
+ * marca/status (ex.: `HasMark{target:'target'}`), sem depender de um buff geral
+ * aplicado ao portador que beneficiaria ataques contra qualquer inimigo.
+ *
+ * 'onTensionGain' dispara toda vez que a própria Tensão Arcana do portador
+ * aumenta (isto é, toda vez que ele usa uma habilidade que arrisca Arcane) —
+ * gatilho genérico de "risco", reutilizável por qualquer classe/item/inimigo
+ * cuja identidade cresça com Arcane arriscada, e não com a passagem de turnos.
+ */
+export type TriggerEvent =
+  | 'onHit'
+  | 'onDamaged'
+  | 'onTurnStart'
+  | 'onCombatStart'
+  | 'onOffensiveAction'
+  | 'onTensionGain';
 
 /**
  * Categoria de um status aplicado — existe para permitir remoção genérica por

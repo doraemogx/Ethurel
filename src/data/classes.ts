@@ -31,13 +31,16 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 1,
     baseAttrs: { vigor: 4, reflexo: 2, mente: 3, presenca: 2 },
     startingItems: ['Lâmina curta de bordas irregulares', 'Bandagens ritualizadas'],
-    // Identidade central da classe: dano cresce com o risco acumulado em combate.
-    // Modelado como stack componível (não como `if` de código) — cada início de
-    // turno soma +1 de ataque, até 5 stacks, durando até o fim do combate.
+    // Identidade central da classe: dano cresce com o RISCO DE ARCANE assumido,
+    // não com a passagem de turnos — "a ferida vira porta; a dor vira poder".
+    // O stack dispara em 'onTensionGain' (toda vez que a própria Tensão Arcana
+    // sobe, ou seja, a cada uso de uma habilidade que arrisca Arcane), não em
+    // 'onTurnStart'. Correção pós-revisão: a versão anterior (onTurnStart)
+    // representava "turnos geram poder", não "risco gera poder".
     passives: [
       {
         type: 'Trigger',
-        event: 'onTurnStart',
+        event: 'onTensionGain',
         effects: [
           {
             type: 'ModifyStat',
@@ -164,7 +167,29 @@ export const CLASSES: ClassDefinition[] = [
     markMult: 0.9,
     baseAttrs: { vigor: 3, reflexo: 4, mente: 2, presenca: 2 },
     startingItems: ['Arco curto e carcaz', 'Kit de armadilhas de fenda'],
-    passives: [],
+    // Correção pós-revisão: o bônus de "facilita os próximos ataques" NÃO pode
+    // ser um ModifyStat de precisão aplicado ao jogador até o fim do combate —
+    // isso beneficiaria ataques contra QUALQUER inimigo, não só o marcado. A
+    // regra certa é uma passiva que dispara a cada ação ofensiva ('onOffensiveAction',
+    // avaliado no contexto do alvo daquela ação específica) e só concede o bônus
+    // se ESSE alvo tiver a marca 'rastreado' — dependência simultânea de
+    // "alvo atual da ação" + "esse alvo possuir a marca", data-driven e
+    // reutilizável por qualquer classe/item/inimigo com mecânica de marcação.
+    passives: [
+      {
+        type: 'Trigger',
+        event: 'onOffensiveAction',
+        effects: [
+          {
+            type: 'ConditionalEffect',
+            condition: { type: 'HasMark', tag: 'rastreado', target: 'target' },
+            then: [
+              { type: 'ModifyStat', stat: 'accuracy', delta: 3, duration: { kind: 'instant' }, target: 'self' },
+            ],
+          },
+        ],
+      },
+    ],
     abilities: [
       {
         id: 'marca-do-rastro',
@@ -172,26 +197,10 @@ export const CLASSES: ClassDefinition[] = [
         tier: 'controle',
         cost: 3,
         tensionGain: 9,
-        // "Facilita os próximos ataques": a marca dura o combate inteiro, e o
-        // bônus de precisão condicionado a ela (HasMark) também precisa durar
-        // — não é um bônus instantâneo aplicado na própria ação de marcar
-        // (que não ataca nada), é um bônus persistente enquanto o alvo estiver
-        // marcado.
+        // A habilidade só marca; o bônus contra o alvo marcado vem da passiva
+        // acima (dispara a cada ação ofensiva subsequente, não aqui).
         effects: [
           { type: 'MarkTarget', tag: 'rastreado', duration: { kind: 'untilCombatEnd' }, target: 'target' },
-          {
-            type: 'ConditionalEffect',
-            condition: { type: 'HasMark', tag: 'rastreado', target: 'target' },
-            then: [
-              {
-                type: 'ModifyStat',
-                stat: 'accuracy',
-                delta: 3,
-                duration: { kind: 'untilCombatEnd' },
-                target: 'self',
-              },
-            ],
-          },
         ],
       },
       {
