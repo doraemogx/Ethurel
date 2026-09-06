@@ -3,31 +3,57 @@
  * Cada fase integra progressivamente seus próprios campos a este schema — a Fase 7
  * cuida só de migração/export/import/recuperação de falha e do teste final.
  *
- * Fase 1: só o schema mínimo abaixo existe (prova que o save grava/lê um objeto
- * versionado). Fase 2 acrescenta posição/mapa atual; fases seguintes acrescentam
- * NPCs conhecidos, inventário, quests, combate, etc. — sempre com uma nova
- * interface `SaveDataVN` e uma função de migração nomeada, nunca uma edição
- * silenciosa do shape anterior.
+ * Fase 1: schema mínimo (`SaveDataV1`), só o dev-check (provou que o save grava/lê
+ * um objeto versionado). Fase 2 (esta versão, `SaveDataV2`): acrescenta posição do
+ * jogador e mapa atual — o mínimo pedido para o protótipo de movimento persistir.
+ * Fases seguintes acrescentam NPCs conhecidos, inventário, quests, combate, etc.
+ * — sempre com uma nova interface `SaveDataVN` e uma função de migração nomeada
+ * (ver `src/save/migrations/`), nunca uma edição silenciosa do shape anterior.
  *
  * `CharacterAppearance` (src/player/types.ts) já existe como tipo, mas ainda
  * NÃO faz parte deste schema — só entra quando `CharacterModel` completo for
- * integrado ao save (junto com stats/classe/origem, na Fase 4), não nesta
- * correção pontual. `SaveDataV1` aqui continua sendo só o dev check da Fase 1.
+ * integrado ao save (junto com stats/classe/origem, na Fase 4).
  */
-export const CURRENT_SCHEMA_VERSION = 1 as const;
+export const CURRENT_SCHEMA_VERSION = 2 as const;
 
 export interface SaveDataV1 {
   schemaVersion: 1;
-  /** Contador simples de aberturas do jogo — usado só para provar visualmente
-   * que o save persiste entre sessões (ver src/core/BootScene.ts). */
   sessionCount: number;
   createdAt: number;
   updatedAt: number;
 }
 
-export type SaveData = SaveDataV1;
+export interface PlayerSaveState {
+  mapId: string;
+  x: number;
+  y: number;
+}
 
-export function createEmptySave(): SaveDataV1 {
+export interface SaveDataV2 {
+  schemaVersion: 2;
+  /** Preservado da Fase 1 só por continuidade — não é mais usado para provar nada
+   * sozinho; o teste real agora é a posição do jogador persistindo. */
+  sessionCount: number;
+  player: PlayerSaveState;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type SaveData = SaveDataV1 | SaveDataV2;
+
+/** Único mapa jogável desta fase — o protótipo de movimento. Varreth (Fase 3)
+ * introduzirá o(s) próximo(s) `mapId`. */
+export const PROTOTYPE_MAP_ID = 'prototipo-fase2';
+
+export const DEFAULT_SPAWN: PlayerSaveState = { mapId: PROTOTYPE_MAP_ID, x: 240, y: 160 };
+
+export function createEmptySaveV2(): SaveDataV2 {
   const now = Date.now();
-  return { schemaVersion: CURRENT_SCHEMA_VERSION, sessionCount: 0, createdAt: now, updatedAt: now };
+  return {
+    schemaVersion: 2,
+    sessionCount: 0,
+    player: { ...DEFAULT_SPAWN },
+    createdAt: now,
+    updatedAt: now,
+  };
 }
