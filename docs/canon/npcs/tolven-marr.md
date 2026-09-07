@@ -95,3 +95,24 @@ palavra "guarda-caminho" de onde ela aparece como rótulo/resumo.
 Mudança de escopo: **4 arquivos, 1 linha cada** (`npcs.ts`, `firstChapterScenes.ts`,
 `JournalScreen.tsx`, `ancestries.ts`). Nenhuma tela redesenhada, nenhum
 diálogo novo escrito, nenhuma estrutura de cena alterada.
+
+### Aplicado
+
+As 4 mudanças acima foram feitas:
+
+- `src/data/npcs.ts`: `role: 'Ferreiro de Varreth'` (era "Guarda-caminho de
+  Varreth"). `personality` preservada — já batia com a psicologia canônica.
+- `src/content/firstChapterScenes.ts`: rótulo da ação `'Falar com Tolven, o
+  ferreiro'` (era "o guarda-caminho").
+- `src/ui/screens/JournalScreen.tsx`: resumo no Diário atualizado para
+  "Ferreiro de Varreth. Cansado, mas atento...".
+- `src/data/ancestries.ts`: `npcRecognitionHook` de Errantes da Estrada não
+  cita mais Tolven como "guarda-caminho" — trocado por "gente de ofício em
+  Varreth, como Tolven", preservando a função narrativa da frase (alguém
+  que tem contato regular com viajantes reconhece um Errante) sem afirmar
+  uma profissão errada.
+
+`src/canon/entityRegistry.ts` (`tolven-marr`) atualizado: `status`
+permanece `blocker` — a profissão está resolvida, mas o nascimento em Veyr
+(e o motivo da mudança para Varreth) segue sem explicação no jogo, e
+escrever essa origem é conteúdo novo, fora do escopo desta rodada.

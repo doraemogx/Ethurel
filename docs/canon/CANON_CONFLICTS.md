@@ -172,16 +172,24 @@ arcos possíveis. Dossiê completo em `docs/canon/npcs/tolven-marr.md` e
 `src/canon/npcRegistry.ts`.
 
 **Provavelmente o mesmo personagem** (o sobrenome "Marr" simplesmente nunca
-foi usado no jogo) — mas agora que a biografia completa foi lida, a
-divergência é maior do que "só o local de nascimento": **profissão também
-diverge** (ferreiro vs. guarda-caminho). Reconciliar exige reescrever
-diálogo e a moldura da quest do capítulo 1
-(`src/content/firstChapterQuest.ts`/`firstChapterScenes.ts`) — conteúdo/
-redesign fora do escopo autorizado nesta rodada. **Decisão do usuário
-pendente**: manter a divergência (variação desta campanha) ou autorizar
-reescrita futura do papel de Tolven para bater com "ferreiro nascido em
-Veyr, mudou-se para Varreth" (motivo da mudança precisaria ser inventado —
-a fonte não cobre isso).
+foi usado no jogo).
+
+**Atualização — Fase 2 §13, DECISÃO CANÔNICA do usuário ("use o Tolven Marr
+da Bíblia V7 como versão canônica"):** profissão **resolvida** — `role` em
+`src/data/npcs.ts` corrigido de "Guarda-caminho de Varreth" para "Ferreiro
+de Varreth" (Livro VII.001.2). Rótulo da ação no capítulo 1
+(`firstChapterScenes.ts`) e resumo do Diário (`JournalScreen.tsx`) também
+corrigidos — 4 arquivos, 1 linha cada, sem reescrever diálogo nem a
+estrutura da quest (o texto de `DIALOGUE_OFFER` nunca afirmava "eu sou
+guarda", funciona igual vindo de um ferreiro preocupado com a estrada).
+Análise de impacto completa em `docs/canon/npcs/tolven-marr.md`.
+
+**Ainda pendente** (não resolvido, é conteúdo novo — fora do escopo desta
+rodada): o jogo não afirma que Tolven nasceu em Veyr nem explica por que um
+ferreiro de lá estaria em Varreth. A fonte não cobre esse motivo — escrever
+essa migração/backstory é trabalho de conteúdo, não correção de dado, e
+fica para uma rodada de redesign/expansão de conteúdo autorizada
+separadamente.
 
 ## §5 — Origens e Classes: SEM conflito, confirmado compatível [informativo, não é problema]
 
@@ -237,7 +245,7 @@ tecnicamente, tanto um problema técnico quanto uma violação canônica direta.
 | 1 | "Borda dos Musgos"/"Estrada Velha" ausentes da V7 | Crítico | **Resolvido** |
 | 2 | Ancestralidades da Fase 3 colidem com os 10 povos canônicos | Alto | Parcial (Musgo Antigo resolvido; outras 3 pendentes) |
 | 3 | Personagens de Origem: 4/5 nomes batem, 1 typo, 3 faltando | Alto | **Resolvido** (nome + 3 blockers canônicos corrigidos; 3 personagens canônicos ainda não implementados, ver nota) |
-| 4 | Tolven vs Tolven Marr (biografia a reconciliar) | Médio | Dados completos; decisão de reconciliação pendente |
+| 4 | Tolven vs Tolven Marr (biografia a reconciliar) | Médio | **Profissão resolvida** (Fase 2 §13); nascimento em Veyr ainda pendente (conteúdo novo) |
 | 5 | Classes/Origens: sem conflito | — (informativo) | — |
 | 6 | Sistema de Ecos: nome coincide, mecanismo não verificado | Médio | Pendente |
 | 7 | Regra canônica de "sem fallback genérico" já violada | Crítico | **Resolvido** |

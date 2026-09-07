@@ -38,7 +38,7 @@ export function JournalScreen() {
       id: 'npc-tolven',
       category: 'pessoas',
       title: NPC_NAME,
-      summary: 'Guarda-caminho de Varreth. Cansado, mas atento — desconfia de coisas que "não são naturais" antes de qualquer outra coisa.',
+      summary: 'Ferreiro de Varreth. Cansado, mas atento — desconfia de coisas que "não são naturais" antes de qualquer outra coisa.',
       state: 'confirmed',
       tags: [],
       discoveredAt: 0,

@@ -33,7 +33,7 @@ export const FIRST_CHAPTER_SCENES: Record<SceneId, SceneScript> = {
     narration:
       'Varreth acorda devagar. Fumaça fina sobe dos telhados; alguém bate um martelo em algum lugar perto demais para ser ignorado. Você chegou há pouco — o suficiente para ainda ser notado, não o bastante para ser reconhecido.',
     actions: [
-      { id: 'talk-tolven', label: 'Falar com Tolven, o guarda-caminho' },
+      { id: 'talk-tolven', label: 'Falar com Tolven, o ferreiro' },
       { id: 'observe-square', label: 'Observar a praça com atenção', unlockedBy: 'Mente', requiresAttribute: 'mente' },
     ],
   },

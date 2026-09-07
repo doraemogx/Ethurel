@@ -7,11 +7,12 @@
  * por entrada, ver CANON_CONFLICTS.md §0), o Livro VII tem prosa bespoke de
  * verdade — fatos específicos por NPC (local de nascimento, profissão,
  * relações nomeadas, segredo com pistas concretas, rotina, arcos). Isto é
- * dado de referência estruturado, NÃO reescreve `src/data/npcs.ts` — o NPC
- * "Tolven" já implementado no jogo (Guarda-caminho de Varreth) diverge desta
- * biografia canônica (Tolven Marr, ferreiro nascido em Veyr) e reconciliar
- * os dois exige tocar diálogo/quest do capítulo 1, fora do escopo autorizado
- * nesta rodada — ver CANON_CONFLICTS.md §4.
+ * dado de referência estruturado, não substitui `src/data/npcs.ts`. O NPC
+ * "Tolven" do jogo (`src/data/npcs.ts`) foi parcialmente alinhado a esta
+ * biografia na Fase 2 §13 (profissão: ferreiro, não mais guarda-caminho) —
+ * o nascimento em Veyr e o motivo da mudança para Varreth seguem sem
+ * explicação no jogo (escrever essa origem é conteúdo novo) — ver
+ * CANON_CONFLICTS.md §4 e docs/canon/npcs/tolven-marr.md.
  */
 
 export interface CanonRelation {

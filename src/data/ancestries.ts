@@ -115,7 +115,7 @@ export const ANCESTRIES: AncestryDefinition[] = [
     appearanceNote: 'Roupas em camadas feitas para viagem longa, sempre com algo emprestado ou remendado de outra região — nunca um único estilo fixo.',
     attrBonus: { reflexo: 1 },
     perceptionEdge: { ambientProfile: 'road', dcReduction: 2 },
-    npcRecognitionHook: 'Guardas-caminho como Tolven reconhecem um Errante pelo jeito de carregar a bagagem antes mesmo de ouvir o nome.',
+    npcRecognitionHook: 'Gente de ofício em Varreth, como Tolven, reconhece um Errante pelo jeito de carregar a bagagem antes mesmo de ouvir o nome.',
     variants: [
       {
         id: 'caravaneiros',
