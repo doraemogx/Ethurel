@@ -1,17 +1,18 @@
 import { saveStore } from '@/save/SaveStore';
 import {
-  createEmptySaveV5,
+  createEmptySaveV6,
   CURRENT_SCHEMA_VERSION,
   type SaveData,
   type SaveDataV1,
   type SaveDataV2,
   type SaveDataV3,
-  type SaveDataV5,
+  type SaveDataV6,
 } from '@/save/schema';
 import { migrate001To002 } from '@/save/migrations/001_to_002';
 import { migrate002To003 } from '@/save/migrations/002_to_003';
 import { migrate003To004 } from '@/save/migrations/003_to_004';
 import { migrate004To005 } from '@/save/migrations/004_to_005';
+import { migrate005To006 } from '@/save/migrations/005_to_006';
 import { CLASSES } from '@/data/classes';
 
 export const SAVE_SLOT_IDS = ['slot1', 'slot2', 'slot3'] as const;
@@ -23,20 +24,21 @@ function slotKey(slot: SaveSlotId): string {
 
 const LEGACY_SAVE_KEY = 'save_slot_1'; // chave única usada pelo protótipo top-down (v1-v3)
 
-function migrateToV5(data: SaveData): SaveDataV5 {
-  if (data.schemaVersion === 5) return data;
-  if (data.schemaVersion === 4) return migrate004To005(data);
-  if (data.schemaVersion === 3) return migrate004To005(migrate003To004(data as SaveDataV3));
-  if (data.schemaVersion === 2) return migrate004To005(migrate003To004(migrate002To003(data as SaveDataV2)));
-  return migrate004To005(migrate003To004(migrate002To003(migrate001To002(data as SaveDataV1))));
+function migrateToV6(data: SaveData): SaveDataV6 {
+  if (data.schemaVersion === 6) return data;
+  if (data.schemaVersion === 5) return migrate005To006(data);
+  if (data.schemaVersion === 4) return migrate005To006(migrate004To005(data));
+  if (data.schemaVersion === 3) return migrate005To006(migrate004To005(migrate003To004(data as SaveDataV3)));
+  if (data.schemaVersion === 2) return migrate005To006(migrate004To005(migrate003To004(migrate002To003(data as SaveDataV2))));
+  return migrate005To006(migrate004To005(migrate003To004(migrate002To003(migrate001To002(data as SaveDataV1)))));
 }
 
 /** Carrega um slot específico, migrando se necessário. Nunca lança. */
-export function loadSlot(slot: SaveSlotId): SaveDataV5 {
+export function loadSlot(slot: SaveSlotId): SaveDataV6 {
   const current = saveStore.load<SaveData>(slotKey(slot));
   if (current) {
-    if (current.schemaVersion === CURRENT_SCHEMA_VERSION) return current as SaveDataV5;
-    const migrated = migrateToV5(current);
+    if (current.schemaVersion === CURRENT_SCHEMA_VERSION) return current as SaveDataV6;
+    const migrated = migrateToV6(current);
     saveStore.save(slotKey(slot), migrated);
     return migrated;
   }
@@ -46,13 +48,13 @@ export function loadSlot(slot: SaveSlotId): SaveDataV5 {
   if (slot === 'slot1') {
     const legacy = saveStore.load<SaveData>(LEGACY_SAVE_KEY);
     if (legacy) {
-      const migrated = migrateToV5(legacy);
+      const migrated = migrateToV6(legacy);
       saveStore.save(slotKey(slot), migrated);
       return migrated;
     }
   }
 
-  return createEmptySaveV5();
+  return createEmptySaveV6();
 }
 
 export interface SaveSlotSummary {
@@ -68,7 +70,7 @@ export function listSlotSummaries(): SaveSlotSummary[] {
   return SAVE_SLOT_IDS.map((slot) => {
     const raw = saveStore.load<SaveData>(slotKey(slot)) ?? (slot === 'slot1' ? saveStore.load<SaveData>(LEGACY_SAVE_KEY) : null);
     if (!raw) return { slot, occupied: false };
-    const data = migrateToV5(raw);
+    const data = migrateToV6(raw);
     if (!data.character) return { slot, occupied: false };
     const className = CLASSES.find((c) => c.id === data.character!.classId)?.name;
     return {
@@ -92,7 +94,7 @@ const DEBOUNCE_MS = 1500;
 const dirtySlots = new Set<SaveSlotId>();
 const debounceHandles = new Map<SaveSlotId, ReturnType<typeof setTimeout>>();
 
-function writeNow(slot: SaveSlotId, save: SaveDataV5): void {
+function writeNow(slot: SaveSlotId, save: SaveDataV6): void {
   save.updatedAt = Date.now();
   saveStore.save(slotKey(slot), save);
   dirtySlots.delete(slot);
@@ -103,7 +105,7 @@ function writeNow(slot: SaveSlotId, save: SaveDataV5): void {
   }
 }
 
-export function scheduleSave(slot: SaveSlotId, save: SaveDataV5): void {
+export function scheduleSave(slot: SaveSlotId, save: SaveDataV6): void {
   dirtySlots.add(slot);
   if (debounceHandles.has(slot)) return;
   debounceHandles.set(
@@ -112,12 +114,12 @@ export function scheduleSave(slot: SaveSlotId, save: SaveDataV5): void {
   );
 }
 
-export function flushSave(slot: SaveSlotId, save: SaveDataV5): void {
+export function flushSave(slot: SaveSlotId, save: SaveDataV6): void {
   if (!dirtySlots.has(slot)) return;
   writeNow(slot, save);
 }
 
-export function forceSave(slot: SaveSlotId, save: SaveDataV5): void {
+export function forceSave(slot: SaveSlotId, save: SaveDataV6): void {
   dirtySlots.add(slot);
   writeNow(slot, save);
 }

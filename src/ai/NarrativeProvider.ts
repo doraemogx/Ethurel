@@ -50,6 +50,12 @@ export interface NarrativeContext {
   relevantReputationValue?: number;
   recentEvents: WorldEvent[];
   mechanicalResult?: string;
+  /** Recorte canônico já filtrado (spec Fase 2 §1/§2) — linhas curtas prontas
+   * para prompt, nunca a Bíblia/registro inteiro. Ver
+   * `src/canon/canonRetrieval.ts` (`retrieveCanonContext`) e
+   * `src/canon/knowledgeAccess.ts` (filtro por NPC). Opcional para não
+   * quebrar construções manuais de contexto em teste. */
+  canonSummary?: string[];
 }
 
 export interface NarrativeRequest {

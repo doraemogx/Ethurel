@@ -62,3 +62,36 @@ variação desta campanha específica) OU autorizar uma reescrita futura do
 diálogo/papel dele para bater com "ferreiro nascido em Veyr, mudou-se para
 Varreth" (motivo da mudança ainda precisaria ser inventado, já que a fonte
 não cobre isso).
+
+## Decisão (Fase 2) — usar o Tolven Marr canônico
+
+> Atualização: o usuário decidiu explicitamente na Fase 2 ("DECISÃO
+> CANÔNICA — TOLVEN MARR") usar a versão canônica, adaptando o jogo, com a
+> instrução expressa de não reescrever o capítulo inteiro — só o
+> necessário. Análise de impacto abaixo, feita antes de qualquer edição.
+
+### Onde "guarda-caminho"/o papel dele aparece no código
+
+| Arquivo | O que tem | Precisa mudar? |
+|---|---|---|
+| `src/data/npcs.ts` | `role: 'Guarda-caminho de Varreth'` | **Sim** — vira `'Ferreiro de Varreth'` (ou equivalente que reflita Veyr/ferreiro). |
+| `src/content/firstChapterScenes.ts` | label da ação `'Falar com Tolven, o guarda-caminho'` | **Sim** — só o rótulo, a cena/estrutura não muda. |
+| `src/ui/screens/JournalScreen.tsx` | resumo do Diário: `'Guarda-caminho de Varreth. Cansado, mas atento...'` | **Sim** — troca "Guarda-caminho" por "Ferreiro"; o resto ("cansado, mas atento — desconfia do que não é natural") já bate com a psicologia canônica (Livro VII.001.3: cautela diante de Arcane, não fascínio). |
+| `src/data/ancestries.ts` (linha 118) | `'Guardas-caminho como Tolven reconhecem um Errante...'` cita Tolven como EXEMPLO de guarda | **Sim** — troca a referência a "guardas-caminho" citando o nome dele por algo que não afirme a profissão errada. |
+| `src/content/firstChapterQuest.ts` (`DIALOGUE_OFFER`) | Falas dele pedindo para investigar a raiz | **Não precisa mudar o texto** — as falas nunca afirmam "eu sou guarda", funcionam igualmente bem vindas de um ferreiro preocupado com algo perto da estrada que ele usa/depende. |
+| `src/domain/passiveInsights.ts` | "Tolven desvia os olhos ao mencionar a Estrada Velha" | **Não precisa mudar** — não depende de profissão, não contradiz o cânone (que é silencioso sobre Estrada Velha para ele). |
+| `src/ui/screens/SceneScreen.tsx` (falas de confiança) | "Tolven mede você com os olhos...", "Tolven já parecia esperar por você" | **Não precisa mudar** — genéricas, não dependem de profissão. |
+| `docs/design/06-WORLD-NARRATIVE-BIBLE.md` | cânone legado pré-V7, cita Tolven como guarda | Não editado (documento histórico da Fase 1 anterior) — a divergência já está registrada aqui e em `CANON_CONFLICTS.md` §4; reescrever um doc histórico não muda o jogo. |
+
+### Por que a quest continua funcionando sem reescrita
+
+`DIALOGUE_OFFER` nunca afirma "eu, como guarda, preciso que você...". O
+gancho é: alguém em Varreth percebeu uma anomalia perto da estrada e pede a
+um viajante capaz para investigar. Isso funciona igual vindo de um ferreiro
+preocupado (rotas/materiais/segurança da comunidade que ele depende para o
+próprio ofício) — não precisa inventar um motivo elaborado, só remover a
+palavra "guarda-caminho" de onde ela aparece como rótulo/resumo.
+
+Mudança de escopo: **4 arquivos, 1 linha cada** (`npcs.ts`, `firstChapterScenes.ts`,
+`JournalScreen.tsx`, `ancestries.ts`). Nenhuma tela redesenhada, nenhum
+diálogo novo escrito, nenhuma estrutura de cena alterada.

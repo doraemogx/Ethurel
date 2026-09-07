@@ -12,7 +12,7 @@
  * preservando apenas metadados (createdAt) — documentado explicitamente em
  * `src/save/migrations/003_to_004.ts`, não é um bug.
  */
-export const CURRENT_SCHEMA_VERSION = 5 as const;
+export const CURRENT_SCHEMA_VERSION = 6 as const;
 
 export interface SaveDataV1 {
   schemaVersion: 1;
@@ -74,12 +74,28 @@ import type { WorldEvent } from '@/domain/worldEvents';
 import type { Echo } from '@/domain/echoes';
 import type { KnowledgeEntry } from '@/domain/knowledge';
 
-export interface CompanionRelationshipState {
+/** Forma histórica (v4/v5), congelada — NÃO adicionar campos aqui. Novos
+ * campos entram em `CompanionRelationshipState` (a forma viva, v6+) e a
+ * migração correspondente cuida do backfill em runtime. */
+export interface CompanionRelationshipStateLegacy {
   affinity: number;
   trust: number;
   fear: number;
   respect: number;
   flags: string[];
+}
+
+export interface CompanionRelationshipState extends CompanionRelationshipStateLegacy {
+  /** Ressentimento acumulado — cresce com traições/decisões que magoam, não decai junto com afinidade (spec Fase 2 §5). */
+  resentment: number;
+  /** Dívida narrativa (positiva = o NPC deve ao personagem; negativa = o personagem deve ao NPC) — não é moeda, é peso de obrigação para diálogo/consequência. */
+  debt: number;
+  /** Suspeita — independente de confiança: dá pra confiar em alguém e ainda desconfiar de uma ação específica dele. */
+  suspicion: number;
+}
+
+export function createEmptyRelationshipState(): CompanionRelationshipState {
+  return { affinity: 0, trust: 0, fear: 0, respect: 0, resentment: 0, debt: 0, suspicion: 0, flags: [] };
 }
 
 /** Velocidade de texto (Fase 2 §17): Instantâneo (sem typewriter),
@@ -118,7 +134,7 @@ export interface SaveDataV4 {
   narrative: NarrativeProgressState;
   worldEvents: WorldEvent[];
   quests: Record<string, QuestProgressState>;
-  relationships: Record<string, CompanionRelationshipState>;
+  relationships: Record<string, CompanionRelationshipStateLegacy>;
   discoveredLocations: string[];
   currentLocationId: string;
   inventory: string[];
@@ -164,7 +180,7 @@ export interface SaveDataV5 {
   narrative: NarrativeProgressState;
   worldEvents: WorldEvent[];
   quests: Record<string, QuestProgressState>;
-  relationships: Record<string, CompanionRelationshipState>;
+  relationships: Record<string, CompanionRelationshipStateLegacy>;
   /** Confiança por NPC nomeado (0 = neutro) — nunca mostrada como número na
    * UI, só como rótulo narrativo (ver src/social/relationship.ts). */
   npcTrust: Record<string, number>;
@@ -178,9 +194,61 @@ export interface SaveDataV5 {
   updatedAt: number;
 }
 
-export type SaveData = SaveDataV1 | SaveDataV2 | SaveDataV3 | SaveDataV4 | SaveDataV5;
+// ---- V6 — World State formal + Relationships multi-dimensional (Fase 2) ----
+
+import type { WorldState } from '@/world/worldState';
+import { createEmptyWorldState } from '@/world/worldState';
+
+export interface SaveDataV6 {
+  schemaVersion: 6;
+  character: CharacterModel | null;
+  originCharacterId: string | null;
+  narrative: NarrativeProgressState;
+  worldEvents: WorldEvent[];
+  quests: Record<string, QuestProgressState>;
+  relationships: Record<string, CompanionRelationshipState>;
+  npcTrust: Record<string, number>;
+  echoes: Echo[];
+  knowledge: KnowledgeEntry[];
+  locationStates: Record<string, LocationDiscoveryState>;
+  discoveredLocations: string[];
+  currentLocationId: string;
+  inventory: string[];
+  /** CAMPAIGN STATE — separado formalmente de CANON (`src/canon/`) nesta
+   * versão (spec Fase 2 §3): fatos mutáveis por campanha sobre entidades do
+   * mundo (ex.: um NPC canônico morreu NESTA campanha), com default sempre
+   * derivado do cânone, nunca sobrescrevendo-o. */
+  worldState: WorldState;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type SaveData = SaveDataV1 | SaveDataV2 | SaveDataV3 | SaveDataV4 | SaveDataV5 | SaveDataV6;
 
 export const STARTING_LOCATION_ID = 'varreth';
+
+export function createEmptySaveV6(): SaveDataV6 {
+  const now = Date.now();
+  return {
+    schemaVersion: 6,
+    character: null,
+    originCharacterId: null,
+    narrative: { currentSceneId: 'intro', flags: [] },
+    worldEvents: [],
+    quests: {},
+    relationships: {},
+    npcTrust: {},
+    echoes: [],
+    knowledge: [],
+    locationStates: { varreth: 'visitado', 'borda-musgos': 'conhecido', 'estrada-velha': 'desconhecido', fronteira: 'desconhecido' },
+    discoveredLocations: [STARTING_LOCATION_ID],
+    currentLocationId: STARTING_LOCATION_ID,
+    inventory: [],
+    worldState: createEmptyWorldState(),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
 
 export function createEmptySaveV5(): SaveDataV5 {
   const now = Date.now();
