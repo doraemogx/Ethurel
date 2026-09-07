@@ -49,6 +49,58 @@ function TerrainGlyph({ kind, cx, cy }: { kind: 'village' | 'forest' | 'road' | 
 }
 
 /**
+ * Camada de terreno pintado (Rodada de Recuperação §15) — o mapa antigo era
+ * só nós+linhas sobre um pergaminho vazio ("pseudo-mapa", rejeitado
+ * explicitamente). Isto pinta cartografia de verdade por baixo dos nós,
+ * baseada só no que os próprios locais já descrevem (`locations.ts`,
+ * cânone Orren): floresta/névoa ao redor da Borda dos Musgos, uma estrada
+ * de pedra rachada ligando Varreth→Estrada Velha→Fronteira, e um campo de
+ * fendas ao redor da Fronteira Partida (fissura arcana permanente). Nada
+ * aqui inventa geografia nova — só desenha o que a descrição de cada local
+ * já afirma, na escala do próprio viewBox 300×190.
+ */
+function TerrainPainting() {
+  return (
+    <g opacity={0.9}>
+      {/* Massa de floresta/névoa — Borda dos Musgos (canto noroeste). */}
+      <g fill="#5a4632" fillOpacity={0.14} stroke="#5a4632" strokeOpacity={0.35} strokeWidth={0.5}>
+        <path d="M12,95 C8,72 24,50 48,44 C66,40 82,50 88,66 C94,80 86,96 70,100 C50,106 24,112 12,95 Z" />
+      </g>
+      <g fill="#5a4632" fillOpacity={0.22} stroke="#5a4632" strokeOpacity={0.4} strokeWidth={0.45}>
+        <circle cx={40} cy={58} r={7} />
+        <circle cx={56} cy={50} r={6} />
+        <circle cx={30} cy={72} r={6.5} />
+        <circle cx={50} cy={78} r={7.5} />
+        <circle cx={66} cy={68} r={6} />
+        <circle cx={22} cy={58} r={5} />
+      </g>
+      {/* Névoa baixa, típica da própria descrição do local. */}
+      <path d="M10,88 Q40,98 70,88" stroke="#c9d3cf" strokeOpacity={0.22} strokeWidth={3} fill="none" strokeLinecap="round" />
+
+      {/* Campo de fendas — Fronteira Partida, o ar "não se comporta direito". */}
+      <g stroke="#8a6fae" strokeOpacity={0.4} fill="none" strokeWidth={0.6}>
+        <path d="M238,30 L250,52 L242,66 L262,60 L270,38" strokeDasharray="1.2 1.6" />
+        <path d="M248,20 L256,36" strokeDasharray="1 1.4" />
+        <path d="M266,50 L278,58" strokeDasharray="1 1.4" />
+      </g>
+    </g>
+  );
+}
+
+/** Rosa dos ventos — dispositivo cartográfico clássico, reforça "isto é um
+ * mapa", não um grafo de dependência com nomes em cima. */
+function CompassRose({ x, y, size = 16 }: { x: number; y: number; size?: number }) {
+  return (
+    <g transform={`translate(${x},${y})`} opacity={0.55}>
+      <circle r={size} fill="none" stroke="#5a4632" strokeWidth={0.5} />
+      <path d={`M0,${-size} L${size * 0.22},0 L0,${size} L${-size * 0.22},0 Z`} fill="#5a4632" fillOpacity={0.5} />
+      <path d={`M${-size},0 L0,${-size * 0.22} L${size},0 L0,${size * 0.22} Z`} fill="none" stroke="#5a4632" strokeWidth={0.4} />
+      <text y={-size - 3} textAnchor="middle" fontSize={6} fill="#5a4632" fontFamily="Georgia, serif">N</text>
+    </g>
+  );
+}
+
+/**
  * Mapa místico real (Phase 3 §13) — composição de pergaminho: moldura do
  * Pack #5 como fundo, terreno desenhado em SVG por cima (nunca um PNG pronto
  * colado), estradas como traços curvos de tinta, nomes integrados
@@ -74,7 +126,8 @@ export function MapScreen() {
       <div className="screen__backdrop" style={{ background: 'radial-gradient(140% 100% at 50% 10%, #1c1a28 0%, #100e18 55%, #08070f 100%)' }} />
       <div className="vignette" />
       <div className="screen__content">
-        <h2 className="map-title">Borda dos Musgos</h2>
+        <h2 className="map-title">Cercanias de Varreth</h2>
+        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-dim)', margin: '-6px 0 8px', fontStyle: 'italic' }}>Orren — a região que Ethurel já revelou até aqui.</p>
 
         <div className="map-parchment-wrap">
           <img className="map-parchment-frame" src={`${IMG}/map/parchment-frame.webp`} alt="" />
@@ -89,22 +142,20 @@ export function MapScreen() {
               </filter>
             </defs>
 
-            {/* Estradas — curvas de tinta, não retas de grafo (§13). */}
+            <TerrainPainting />
+
+            {/* Estradas — traço duplo (linha cheia + traço central pontilhado),
+                convenção cartográfica real, não uma linha de grafo genérica. */}
             {edgesFor(LOCATIONS).map(([a, b]) => {
               const dim = stateOf(a.id) === 'desconhecido' || stateOf(b.id) === 'desconhecido';
               const mx = (a.coordinates.x + b.coordinates.x) / 2;
               const my = (a.coordinates.y + b.coordinates.y) / 2 - 6;
+              const d = `M${a.coordinates.x},${a.coordinates.y} Q${mx},${my} ${b.coordinates.x},${b.coordinates.y}`;
               return (
-                <path
-                  key={`${a.id}-${b.id}`}
-                  d={`M${a.coordinates.x},${a.coordinates.y} Q${mx},${my} ${b.coordinates.x},${b.coordinates.y}`}
-                  fill="none"
-                  stroke="#6b5640"
-                  strokeOpacity={dim ? 0.15 : 0.55}
-                  strokeWidth={1.1}
-                  strokeDasharray={dim ? '1 3' : '3 2'}
-                  strokeLinecap="round"
-                />
+                <g key={`${a.id}-${b.id}`}>
+                  <path d={d} fill="none" stroke="#6b5640" strokeOpacity={dim ? 0.15 : 0.5} strokeWidth={2.2} strokeLinecap="round" />
+                  <path d={d} fill="none" stroke="#e8dcc0" strokeOpacity={dim ? 0.1 : 0.4} strokeWidth={0.6} strokeDasharray="2 2.4" />
+                </g>
               );
             })}
 
@@ -152,6 +203,8 @@ export function MapScreen() {
                 </g>
               );
             })}
+
+            <CompassRose x={272} y={172} size={14} />
           </svg>
         </div>
 

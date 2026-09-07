@@ -29,7 +29,13 @@ export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
     id: 'npc-oracle',
     portrait: `${IMG}/portraits/oracle.webp`,
     expressions: { neutral: `${IMG}/portraits/oracle.webp` },
-    presentation: 'feminino',
+    // Correção (Rodada de Recuperação §31): a arte é claramente masculina
+    // (rosto/traços) — estava marcada 'feminino' por engano desde a Fase 3
+    // original. Ninguém no jogo referenciava o campo `presentation` deste
+    // perfil de um jeito que dependesse do valor errado, mas o registro
+    // precisa ser honesto por si só.
+    presentation: 'masculino',
+    visualTheme: 'tecelao-do-veu',
   },
   'npc-pyromancer': {
     id: 'npc-pyromancer',
@@ -49,7 +55,47 @@ export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
       surprised: `${IMG}/portraits/blackwitch-surprised.webp`,
     },
     presentation: 'feminino',
+    // Correção: chapéu de bruxa + gemas violeta lê como "praticante
+    // oculta/pactos", não "cura simbiótica com a natureza" — retagueado de
+    // 'arauto-do-musgo' pra 'lamina-silenciosa' (Rodada de Recuperação §H).
+    visualTheme: 'lamina-silenciosa',
+  },
+
+  // 4 bustos novos (Rodada de Recuperação §2/§B) — extraídos de
+  // incoming-assets/[FREE] Fantasy Character Portraits RPG.rar (Nyteon,
+  // uso livre comercial+pessoal, crédito apreciado — ver
+  // CHARACTER_ASSET_REGISTRY.md). Só busto (sem fullBody/pose/expressões
+  // além de neutral) — mesma categoria de oracle/pyromancer/blackwitch:
+  // servem como vitrine de classe e retrato de Personagem de Origem, não
+  // como opção de corpo inteiro na criação (que exige fullBody, só as 4
+  // "viajante" têm isso).
+  'npc-darkelf': {
+    id: 'npc-darkelf',
+    portrait: `${IMG}/portraits/darkelf-neutral.webp`,
+    expressions: { neutral: `${IMG}/portraits/darkelf-neutral.webp` },
+    presentation: 'feminino',
+    visualTheme: 'cacador-de-fissuras',
+  },
+  'npc-darkprincess': {
+    id: 'npc-darkprincess',
+    portrait: `${IMG}/portraits/darkprincess-neutral.webp`,
+    expressions: { neutral: `${IMG}/portraits/darkprincess-neutral.webp` },
+    presentation: 'feminino',
+    visualTheme: 'andarilho-do-selo',
+  },
+  'npc-druid': {
+    id: 'npc-druid',
+    portrait: `${IMG}/portraits/druid-neutral.webp`,
+    expressions: { neutral: `${IMG}/portraits/druid-neutral.webp` },
+    presentation: 'feminino',
     visualTheme: 'arauto-do-musgo',
+  },
+  'npc-vampire': {
+    id: 'npc-vampire',
+    portrait: `${IMG}/portraits/vampire-neutral.webp`,
+    expressions: { neutral: `${IMG}/portraits/vampire-neutral.webp` },
+    presentation: 'masculino',
+    visualTheme: 'guardiao-do-bastiao',
   },
 
   // Opções de retrato do jogador (criação — passo Masculino/Feminino +
@@ -135,6 +181,34 @@ export function playerPortraitChoicesFor(gender: Gender | null): string[] {
 export function visualProfile(id: string | undefined): CharacterVisualProfile | undefined {
   if (!id) return undefined;
   return VISUAL_PROFILES[id];
+}
+
+/**
+ * Arte de vitrine por classe (Rodada de Recuperação §9/§10) — um busto que
+ * comunica a identidade da classe na tela de seleção, independente do
+ * retrato que o jogador já escolheu pra si (passo Aparência, antes da
+ * Classe no fluxo). Não é o corpo do jogador mudando de roupa — é a
+ * "capa"/vitrine da classe, o mesmo papel que uma carta de personagem
+ * cumpre num board game. Nenhuma imagem se repete entre classes; onde o
+ * mesmo busto também representa um Personagem de Origem daquela classe
+ * (Sera Doventh/Guardião do Bastião, Ynara Voss/Andarilho do Selo, Mireth
+ * Sable/Portador de Cinza), é reforço de identidade, não coincidência —
+ * ver CHARACTER_ASSET_REGISTRY.md para a lista completa de reaproveitamento
+ * intencional.
+ */
+export const CLASS_SHOWCASE_PORTRAIT: Record<string, string> = {
+  'portador-de-cinza': 'npc-pyromancer',
+  'tecelao-do-veu': 'player-viajante-a',
+  'cacador-de-fissuras': 'npc-darkelf',
+  'lamina-silenciosa': 'npc-blackwitch',
+  'guardiao-do-bastiao': 'npc-vampire',
+  'arauto-do-musgo': 'npc-druid',
+  'andarilho-do-selo': 'npc-darkprincess',
+  'lancador-de-ossos': 'player-viajante-c',
+};
+
+export function classShowcaseProfile(classId: string): CharacterVisualProfile | undefined {
+  return visualProfile(CLASS_SHOWCASE_PORTRAIT[classId]);
 }
 
 /** Nunca mostra o retrato de outro personagem: estado sem arte cai para

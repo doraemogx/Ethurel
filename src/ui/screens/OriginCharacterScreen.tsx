@@ -24,18 +24,15 @@ export interface OriginCharacterScreenProps {
  * Fase 2 §13): retrato, classe/origem, uma frase de voz, traços, algo que
  * ELE sabe (mostrado) vs. o segredo (nunca revelado, só um gancho).
  *
- * Fase 3 (Vertical Slice Visual): nenhum dos 5 tem retrato próprio
- * catalogado (`visualProfile.portrait` sempre ausente — ver
- * ASSET_AUDIT.md/visualRegistry.ts) — os únicos retratos de personagem
- * jogável disponíveis são os 4 "viajante" genéricos já usados no passo
- * Aparência da criação customizada, e nenhum deles foi feito pensando
- * nestes 5 nomes/biografias específicos. Emprestar um deles aqui fingiria
- * uma semelhança que não existe (dois Personagens de Origem canônicos
- * "compartilhando o rosto" de um retrato genérico seria pior do que não ter
- * arte). Em vez disso, a silhueta de `Portrait.tsx` é usada em tamanho
- * grande, com o brilho/sigilo temático da classe — protagonismo por
- * composição e atmosfera, não por uma imagem que não existe. A lacuna fica
- * documentada aqui e no relatório da fase, não escondida.
+ * Rodada de Recuperação §11: os 5 agora têm retrato próprio, catalogado em
+ * `originCharacters.ts` (`visualProfile.portrait`) — 4 dos 5 vêm dos bustos
+ * novos extraídos de `incoming-assets/` (Sera Doventh/Vampire, Ynara Voss/
+ * DarkPrincess, Mireth Sable/Pyromancer), o 5º reaproveita um retrato já
+ * catalogado (Doran Kessig/viajante-b, Corwin Thale/Oracle) — ver
+ * CHARACTER_ASSET_REGISTRY.md para a justificativa de cada par. Antes
+ * (Fase 3), nenhum tinha arte própria e a tela usava só a silhueta de
+ * `Portrait.tsx`; esse fallback continua existindo abaixo só como rede de
+ * segurança (nunca deve disparar na prática agora que os 5 têm imageUrl).
  */
 export function OriginCharacterScreen({ slot, onBack, onDone }: OriginCharacterScreenProps) {
   const [selectedId, setSelectedId] = useState(ORIGIN_CHARACTERS[0].id);
@@ -79,7 +76,7 @@ export function OriginCharacterScreen({ slot, onBack, onDone }: OriginCharacterS
                 ‹
               </button>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                <Portrait name={selected.name} accent={theme.accent} size={168} />
+                <Portrait name={selected.name} accent={theme.accent} size={168} imageUrl={selected.visualProfile.portrait} />
                 <ArcaneSigil identity={identity} zone="controle" size={32} />
               </div>
               <button

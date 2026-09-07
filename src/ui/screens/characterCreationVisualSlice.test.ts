@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { ANCESTRIES } from '@/data/ancestries';
 import { CLASSES } from '@/data/classes';
 import { playerPortraitChoicesFor, visualProfile, PLAYER_PORTRAIT_CHOICES } from '@/characters/visualRegistry';
-import { SLICE_CLASS_ID, ANCESTRY_ICON, ANCESTRY_ACCENT, ATTR_EXPLAIN } from '@/ui/screens/CharacterCreationScreen';
+import { ANCESTRY_ACCENT, ATTR_EXPLAIN } from '@/ui/screens/CharacterCreationScreen';
+import { classShowcaseProfile } from '@/characters/visualRegistry';
 
 /**
  * Fase 3 (Vertical Slice Visual) — cobertura de lógica pura para as regras
@@ -38,20 +39,23 @@ describe('Fase 3 — regra "nunca a mesma arte para os dois gêneros" (playerPor
   });
 });
 
-describe('Fase 3 — passo Classe restrito a uma classe completa', () => {
-  it('SLICE_CLASS_ID aponta para uma classe que realmente existe em CLASSES', () => {
-    expect(CLASSES.some((c) => c.id === SLICE_CLASS_ID)).toBe(true);
+describe('Rodada de Recuperação §G/§H — as 8 classes são selecionáveis, cada uma com vitrine própria', () => {
+  it('toda classe tem uma vitrine visual mapeada com retrato real', () => {
+    for (const c of CLASSES) {
+      const showcase = classShowcaseProfile(c.id);
+      expect(showcase?.portrait).toBeTruthy();
+    }
   });
 
-  it('é Portador de Cinza (decisão explícita do usuário: "preferencialmente Portador de Cinza")', () => {
-    expect(SLICE_CLASS_ID).toBe('portador-de-cinza');
+  it('nenhuma classe compartilha a mesma vitrine com outra classe (cada uma comunica sua própria identidade)', () => {
+    const portraits = CLASSES.map((c) => classShowcaseProfile(c.id)?.portrait);
+    expect(new Set(portraits).size).toBe(CLASSES.length);
   });
 });
 
-describe('Fase 3 — emblema por ancestralidade (sem arte de personagem por ancestralidade)', () => {
-  it('toda ancestralidade canônica tem ícone e cor de destaque mapeados', () => {
+describe('Rodada de Recuperação §E — emblema SVG por ancestralidade (sem arte de personagem por ancestralidade)', () => {
+  it('toda ancestralidade canônica tem cor de destaque mapeada (o emblema em si é SVG original, ver AncestryEmblem.tsx)', () => {
     for (const a of ANCESTRIES) {
-      expect(ANCESTRY_ICON[a.id]).toBeTruthy();
       expect(ANCESTRY_ACCENT[a.id]).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });

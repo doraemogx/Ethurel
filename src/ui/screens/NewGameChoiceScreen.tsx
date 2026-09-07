@@ -16,7 +16,7 @@ export function NewGameChoiceScreen({ onBack, onCustom, onOrigin }: NewGameChoic
       <div className="screen__content stack--center">
         <div className="title-block">
           <h1 style={{ fontSize: 22 }}>Quem você é?</h1>
-          <p className="title-tagline" style={{ margin: '8px 0 0' }}>Toda história em Ethurel começa em Varreth — só falta decidir com que rosto você chega.</p>
+          <p className="title-tagline" style={{ margin: '8px 0 0' }}>Ethurel é um mundo inteiro — esta prévia abre uma única porta para ele.</p>
         </div>
         <div className="stack" style={{ marginTop: 28, width: '100%', maxWidth: 320 }}>
           <MysticButton variant="primary" onClick={onCustom}>

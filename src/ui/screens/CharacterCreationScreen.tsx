@@ -1,19 +1,17 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type Dispatch, type SetStateAction } from 'react';
 import { SceneBackdrop } from '@/ui/components/SceneBackdrop';
 import { MysticButton } from '@/ui/components/MysticButton';
 import { ClassDetailCard } from '@/ui/components/ClassDetailCard';
 import { ArcaneSigil } from '@/ui/components/ArcaneSigil';
 import { CreationStage } from '@/ui/components/CreationStage';
 import { ItemIcon } from '@/ui/components/ItemIcon';
-import type { ItemIcon as ItemIconMotif } from '@/items/types';
-import { sceneArtFor } from '@/ui/visual/sceneArt';
-import { IMG } from '@/ui/assetPath';
+import { AncestryEmblem } from '@/ui/components/AncestryEmblem';
 import { getClassTheme } from '@/ui/visual/classThemes';
 import { arcaneIdentityForClass } from '@/arcane/identity';
 import { CLASSES } from '@/data/classes';
 import { ORIGINS } from '@/data/origins';
 import { ANCESTRIES, findAncestry, findVariant, type AncestryDefinition } from '@/data/ancestries';
-import { playerPortraitChoicesFor, visualProfile } from '@/characters/visualRegistry';
+import { playerPortraitChoicesFor, visualProfile, classShowcaseProfile } from '@/characters/visualRegistry';
 import { PRINCIPLES, DESIRES, FEARS, LIMITS, type CreationOption } from '@/data/characterCreationOptions';
 import { computeMaxHp, computeMaxFocus } from '@/domain/dice';
 import {
@@ -29,8 +27,8 @@ import {
 import { createCharacterModel } from '@/domain/characterFactory';
 import { upsertKnowledge } from '@/domain/knowledge';
 import { loadSlot, forceSave, type SaveSlotId } from '@/save/gameSave';
-import type { Gender } from '@/characters/types';
-import type { Attrs } from '@/classes/types';
+import type { Gender, CharacterVisualProfile } from '@/characters/types';
+import type { Attrs, ClassDefinition } from '@/classes/types';
 
 export interface CharacterCreationScreenProps {
   slot: SaveSlotId;
@@ -49,16 +47,17 @@ type Step =
   | 'desejo'
   | 'medo'
   | 'limite'
-  | 'identidade-arcana'
   | 'revisao';
 
-const STEPS: Step[] = ['ancestralidade', 'variante', 'aparencia', 'classe', 'atributos', 'origem', 'principio', 'desejo', 'medo', 'limite', 'identidade-arcana', 'revisao'];
-
-// Fase 3 (Vertical Slice Visual, "Classe"): o slice mostra só UMA classe
-// completa. As outras 7 continuam existindo em src/data/classes.ts (usadas
-// por Personagens de Origem e no jogo já em curso) — só o passo de CRIAÇÃO
-// as esconde nesta prévia, por decisão explícita do escopo desta fase.
-export const SLICE_CLASS_ID = 'portador-de-cinza';
+// Rodada de Recuperação §14: "identidade-arcana" (rótulo em produção:
+// "Marca de Brasa" para Portador de Cinza) foi removida como PASSO próprio
+// da criação — o próprio texto da tela antiga admitia "não é uma escolha
+// separada", mas ainda assim exigia um "Continuar" do jogador, o que lê
+// como uma etapa arbitrária sem função. O sigilo Arcane por classe
+// continua existindo (é cânone recuperado do Artifact, `ArcaneSigil`/
+// `arcaneIdentityForClass`) — só não é mais uma tela isolada; aparece
+// contextualmente na Revisão, onde já fazia sentido estar.
+const STEPS: Step[] = ['ancestralidade', 'variante', 'aparencia', 'classe', 'atributos', 'origem', 'principio', 'desejo', 'medo', 'limite', 'revisao'];
 
 const GENDER_LABEL: Record<Gender, string> = { masculino: 'Masculino', feminino: 'Feminino', outro: 'Outro' };
 const ATTR_LABEL: Record<keyof Attrs, string> = { vigor: 'Vigor', reflexo: 'Reflexo', mente: 'Mente', presenca: 'Presença' };
@@ -69,20 +68,12 @@ export const ATTR_EXPLAIN: Record<keyof Attrs, string> = {
   presenca: 'Como você ocupa espaço diante dos outros — pesa em persuasão, intimidação e percepção social; não é "carisma bonzinho", é peso.',
 };
 
-// Fase 3 (Vertical Slice Visual, passo Ancestralidade/Variante): nenhuma
-// ancestralidade tem arte de personagem própria (ver ASSET_AUDIT.md — os
-// packs cobrem retratos genéricos de viajante, não 4 corpos por
-// ancestralidade). Em vez de fingir uma diferença visual que não existe, o
-// passo usa o mesmo vocabulário de ícone/motivo já usado por classe/item
-// (ash/thread/trail/shadow/stone/moss/sigil/bone, ver ItemIcon.tsx) como
-// emblema — real, reaproveitado, mas propositalmente não uma silhueta de
-// personagem (documentado no relatório da fase como lacuna de asset).
-export const ANCESTRY_ICON: Record<string, ItemIconMotif> = {
-  'pedra-funda': 'stone',
-  'musgo-antigo': 'moss',
-  'errantes-da-estrada': 'trail',
-  'marcados-do-selo': 'sigil',
-};
+// Rodada de Recuperação §6/§E: nenhuma ancestralidade tem arte de
+// personagem própria (ver CHARACTER_ASSET_REGISTRY.md), mas o ícone
+// genérico de item (ash/moss/trail/sigil, herdado do vocabulário de
+// classe) usado na Fase 3 anterior foi REJEITADO explicitamente — "não
+// representa o povo". Substituído por `AncestryEmblem` (SVG heráldico
+// original, desenhado por povo — ver src/ui/components/AncestryEmblem.tsx).
 export const ANCESTRY_ACCENT: Record<string, string> = {
   'pedra-funda': '#a9997a',
   'musgo-antigo': '#6fae7a',
@@ -91,12 +82,12 @@ export const ANCESTRY_ACCENT: Record<string, string> = {
 };
 
 /**
- * Criação de personagem — fluxo de 12 passos (Phase 3 §6-§11): Ancestralidade
- * → Variante → Aparência → Classe → Atributos → Origem → Princípio → Desejo →
- * Medo → Limite → Identidade Arcana → Revisão. Regra absoluta: SELECIONAR !=
- * CONFIRMAR — tocar numa opção só a destaca para leitura (`SelectConfirmStep`
- * abaixo), nunca avança sozinho; sempre há Voltar, e o passo lembra a última
- * escolha ao ser revisitado.
+ * Criação de personagem — fluxo de 11 passos: Ancestralidade → Variante →
+ * Aparência → Classe → Atributos → Origem → Princípio → Desejo → Medo →
+ * Limite → Revisão. Regra absoluta: SELECIONAR != CONFIRMAR — tocar numa
+ * opção só a destaca para leitura (`SelectConfirmStep`/`QuestionnaireStep`
+ * abaixo), nunca avança sozinho; sempre há Voltar, e o passo lembra a
+ * última escolha ao ser revisitado.
  */
 export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreationScreenProps) {
   const [step, setStep] = useState<Step>('ancestralidade');
@@ -107,6 +98,7 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
   const [name, setName] = useState('');
   const [portraitId, setPortraitId] = useState<string | null>(null);
   const [classId, setClassId] = useState<string | null>(null);
+  const [classIndex, setClassIndex] = useState(0);
   const [attrAdjustments, setAttrAdjustments] = useState<AttrAdjustments>(emptyAdjustments());
   const [originId, setOriginId] = useState<string | null>(null);
   const [principle, setPrinciple] = useState<CreationOption | null>(null);
@@ -115,7 +107,19 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
   const [limit, setLimit] = useState<CreationOption | null>(null);
 
   const theme = getClassTheme(classId ?? undefined);
-  const art = sceneArtFor('village');
+  // Rodada de Recuperação §4: a criação não pode usar Varreth (nem
+  // qualquer outra cidade específica) como pano de fundo universal — o
+  // jogador ainda nem sabe onde a própria história vai começar. Nenhum
+  // asset existente é neutro em relação a local (os 7 fundos fotográficos
+  // são todos locais nomeados: Varreth, Borda dos Musgos, Estrada Velha) —
+  // gap documentado, resolvido aqui com um gradiente original (mesma
+  // linguagem visual de pedra/couro/brasa do resto do jogo, sem depender
+  // de nenhuma localização), em vez de forçar uma foto de cidade errada.
+  const art = {
+    gradient: 'radial-gradient(120% 90% at 50% 12%, #3d2f22 0%, #241c15 48%, #14100c 100%)',
+    particleColor: '#e3bd7d',
+    particleMotif: 'ash' as const,
+  };
   const stepIndex = STEPS.indexOf(step);
 
   const goBackStep = () => {
@@ -191,9 +195,8 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
   return (
     <div className="screen">
       <SceneBackdrop
-        art={{ ...art, particleColor: theme.accent, particleMotif: classId ? theme.particleMotif : art.particleMotif }}
+        art={{ ...art, particleColor: classId ? theme.accent : art.particleColor, particleMotif: classId ? theme.particleMotif : art.particleMotif }}
         arcaneOverlay={{ opacity: 0.08, hueShift: 0 }}
-        backgroundImage={`${IMG}/backgrounds/varreth-market.webp`}
       />
       <div className="screen__content">
         <div className="topbar" style={{ marginBottom: 4 }}>
@@ -226,7 +229,6 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
 
         {step === 'aparencia' && (() => {
           const stageAccent = ancestry ? ANCESTRY_ACCENT[ancestry.id] : theme.accent;
-          const stageIcon = ancestry ? ANCESTRY_ICON[ancestry.id] : 'sigil';
           const chosenProfile = portraitId ? visualProfile(portraitId) : undefined;
           const filteredChoices = playerPortraitChoicesFor(gender);
           return (
@@ -239,7 +241,7 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
                 chosenProfile?.fullBody ? (
                   <img src={chosenProfile.fullBody} alt="" />
                 ) : (
-                  <ItemIcon motif={stageIcon} size={132} color={stageAccent} />
+                  <AncestryEmblem ancestryId={ancestry?.id ?? 'marcados-do-selo'} color={stageAccent} size={140} />
                 )
               }
               secondary={
@@ -323,58 +325,16 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
           );
         })()}
 
-        {step === 'classe' && (() => {
-          const previewClass = CLASSES.find((c) => c.id === SLICE_CLASS_ID)!;
-          const previewTheme = getClassTheme(previewClass.id);
-          const chosenProfile = portraitId ? visualProfile(portraitId) : undefined;
-          return (
-            <CreationStage
-              eyebrow={`${stepIndex + 1} de ${STEPS.length} · Classe`}
-              title="Sua Classe"
-              subtitle="Nesta prévia, apenas uma classe está pronta para jogar — as outras 7 chegam depois da aprovação visual."
-              mainAccent={previewTheme.accent}
-              main={
-                <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                  {chosenProfile?.fullBody ? (
-                    <img src={chosenProfile.fullBody} alt="" />
-                  ) : (
-                    <ItemIcon motif="ash" size={132} color={previewTheme.accent} />
-                  )}
-                  {chosenProfile?.fullBody && (
-                    <div
-                      aria-hidden
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: `linear-gradient(180deg, ${previewTheme.glow} 0%, transparent 60%)`,
-                        mixBlendMode: 'screen',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                  <div style={{ position: 'absolute', top: 4, right: 4 }}>
-                    <ItemIcon motif="ash" size={40} color={previewTheme.accent} />
-                  </div>
-                </div>
-              }
-              secondary={<ClassDetailCard classDef={previewClass} />}
-              controls={
-                <>
-                  <p style={{ margin: '0 0 6px', fontSize: 11.5, color: 'var(--text-dim)', textAlign: 'center' }}>
-                    A classe muda a atmosfera ao redor de {name || 'você'} (cor, partículas, sigilo) — o figurino/equipamento ainda não tem arte própria por classe nesta prévia.
-                  </p>
-                  <MysticButton
-                    variant="primary"
-                    onClick={() => { setClassId(previewClass.id); setAttrAdjustments(emptyAdjustments()); goNextStep(); }}
-                  >
-                    Escolher {previewClass.name}
-                  </MysticButton>
-                  <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
-                </>
-              }
-            />
-          );
-        })()}
+        {step === 'classe' && (
+          <ClassPicker
+            classIndex={classIndex}
+            setClassIndex={setClassIndex}
+            onConfirm={(c) => { setClassId(c.id); setAttrAdjustments(emptyAdjustments()); goNextStep(); }}
+            onBack={goBackStep}
+            stepLabel={`${stepIndex + 1} de ${STEPS.length} · Classe`}
+            characterName={name}
+          />
+        )}
 
         {step === 'atributos' && selectedClassDef && (() => {
           const chosenProfile = portraitId ? visualProfile(portraitId) : undefined;
@@ -384,7 +344,7 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
               title="Distribua seus atributos"
               subtitle={`Pontos restantes: ${ATTR_POINT_BUDGET - pointsSpent(attrAdjustments)}/${ATTR_POINT_BUDGET} · preset de ${selectedClassDef.name}${ancestry ? ` + ${ancestry.name}` : ''}`}
               mainAccent={theme.accent}
-              main={chosenProfile?.fullBody ? <img src={chosenProfile.fullBody} alt="" /> : <ItemIcon motif="ash" size={110} color={theme.accent} />}
+              main={chosenProfile?.fullBody ? <img src={chosenProfile.fullBody} alt="" /> : <ItemIcon motif={theme.particleMotif} size={110} color={theme.accent} />}
               secondary={
                 <div className="stack" style={{ gap: 2 }}>
                   {(Object.keys(ATTR_LABEL) as (keyof Attrs)[]).map((attr) => (
@@ -437,63 +397,52 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
         )}
 
         {step === 'principio' && (
-          <SelectConfirmStep
+          <QuestionnaireStep
+            stepLabel={`${stepIndex + 1} de ${STEPS.length} · Princípio`}
             title="Qual princípio guia você?"
             items={PRINCIPLES}
             initialSelectedId={principle?.id ?? null}
-            getLabel={(o) => o.text}
-            confirmLabel={() => 'Confirmar'}
+            mainAccent={theme.accent}
+            portrait={portraitId ? visualProfile(portraitId) : undefined}
             onConfirm={(o) => { setPrinciple(o); goNextStep(); }}
             onBack={goBackStep}
           />
         )}
         {step === 'desejo' && (
-          <SelectConfirmStep
+          <QuestionnaireStep
+            stepLabel={`${stepIndex + 1} de ${STEPS.length} · Desejo`}
             title="O que você deseja, mais do que tudo?"
             items={DESIRES}
             initialSelectedId={desire?.id ?? null}
-            getLabel={(o) => o.text}
-            confirmLabel={() => 'Confirmar'}
+            mainAccent={theme.accent}
+            portrait={portraitId ? visualProfile(portraitId) : undefined}
             onConfirm={(o) => { setDesire(o); goNextStep(); }}
             onBack={goBackStep}
           />
         )}
         {step === 'medo' && (
-          <SelectConfirmStep
+          <QuestionnaireStep
+            stepLabel={`${stepIndex + 1} de ${STEPS.length} · Medo`}
             title="O que você teme?"
             items={FEARS}
             initialSelectedId={fear?.id ?? null}
-            getLabel={(o) => o.text}
-            confirmLabel={() => 'Confirmar'}
+            mainAccent={theme.accent}
+            portrait={portraitId ? visualProfile(portraitId) : undefined}
             onConfirm={(o) => { setFear(o); goNextStep(); }}
             onBack={goBackStep}
           />
         )}
         {step === 'limite' && (
-          <SelectConfirmStep
+          <QuestionnaireStep
+            stepLabel={`${stepIndex + 1} de ${STEPS.length} · Limite`}
             title="O que você jura nunca fazer?"
             items={LIMITS}
             initialSelectedId={limit?.id ?? null}
-            getLabel={(o) => o.text}
-            confirmLabel={() => 'Confirmar'}
+            mainAccent={theme.accent}
+            portrait={portraitId ? visualProfile(portraitId) : undefined}
             onConfirm={(o) => { setLimit(o); goNextStep(); }}
             onBack={goBackStep}
           />
-        )}
-
-        {step === 'identidade-arcana' && selectedClassDef && (
-          <div className="stack--center stack" style={{ flex: 1, justifyContent: 'center' }}>
-            <ArcaneSigil identity={arcaneIdentityForClass(selectedClassDef.id)} zone="controle" size={72} />
-            <h2 style={{ fontWeight: 400, margin: '10px 0 2px' }}>{arcaneIdentityForClass(selectedClassDef.id).label}</h2>
-            <p style={{ maxWidth: 320, textAlign: 'center', fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>
-              Todo personagem carrega uma assinatura Arcane própria, ligada à classe — não é uma escolha separada, é como o mundo reconhece {name || 'você'} em Controle,
-              Saturação ou Ruptura. Discreta agora; vai ficar mais visível conforme a Tensão sobe.
-            </p>
-            <div className="stack" style={{ width: '100%', maxWidth: 300, marginTop: 16 }}>
-              <MysticButton variant="primary" onClick={goNextStep}>Continuar</MysticButton>
-              <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
-            </div>
-          </div>
         )}
 
         {step === 'revisao' && selectedClassDef && (() => {
@@ -506,7 +455,7 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
               mainAccent={theme.accent}
               main={
                 <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                  {chosenProfile?.fullBody ? <img src={chosenProfile.fullBody} alt="" /> : <ItemIcon motif="ash" size={132} color={theme.accent} />}
+                  {chosenProfile?.fullBody ? <img src={chosenProfile.fullBody} alt="" /> : <ItemIcon motif={theme.particleMotif} size={132} color={theme.accent} />}
                   <div style={{ position: 'absolute', top: 4, right: 4 }}>
                     <ArcaneSigil identity={arcaneIdentityForClass(selectedClassDef.id)} zone="controle" size={40} />
                   </div>
@@ -527,6 +476,9 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
                   {variant && <p style={{ margin: 0, fontSize: 12, color: 'var(--text-dim)' }}>{variant.flavorNote}</p>}
                   <p style={{ margin: 0, fontSize: 12, color: 'var(--text-dim)' }}>
                     Origem: {origin?.name} · Princípio: {principle?.text} · Item inicial: {origin?.startingItem}.
+                  </p>
+                  <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                    O sigilo no canto é sua assinatura Arcane — não é uma escolha, é como o mundo reconhece {name || 'você'} em Controle, Saturação ou Ruptura. Discreto agora; mais visível conforme a Tensão sobe.
                   </p>
                 </div>
               }
@@ -620,7 +572,6 @@ function AncestryPicker({
   const [previewId, setPreviewId] = useState(selectedId ?? ANCESTRIES[0].id);
   const preview = findAncestry(previewId) ?? ANCESTRIES[0];
   const accent = ANCESTRY_ACCENT[preview.id];
-  const icon = ANCESTRY_ICON[preview.id];
 
   return (
     <CreationStage
@@ -628,7 +579,7 @@ function AncestryPicker({
       title={preview.name}
       subtitle={preview.tagline}
       mainAccent={accent}
-      main={<ItemIcon motif={icon} size={132} color={accent} />}
+      main={<AncestryEmblem ancestryId={preview.id} color={accent} size={140} />}
       secondary={
         <>
           <p style={{ margin: '0 0 8px' }}>{preview.description}</p>
@@ -676,7 +627,6 @@ function VariantPicker({
   const [previewId, setPreviewId] = useState(selectedId ?? ancestry.variants[0].id);
   const preview = ancestry.variants.find((v) => v.id === previewId) ?? ancestry.variants[0];
   const accent = ANCESTRY_ACCENT[ancestry.id];
-  const icon = ANCESTRY_ICON[ancestry.id];
 
   return (
     <CreationStage
@@ -684,7 +634,7 @@ function VariantPicker({
       title={preview.name}
       subtitle={`Variante de ${ancestry.name}`}
       mainAccent={accent}
-      main={<ItemIcon motif={icon} size={132} color={accent} />}
+      main={<AncestryEmblem ancestryId={ancestry.id} color={accent} size={140} />}
       secondary={
         <>
           <p style={{ margin: '0 0 8px' }}>{preview.description}</p>
@@ -705,6 +655,138 @@ function VariantPicker({
             ))}
           </div>
           <MysticButton variant="primary" onClick={() => onConfirm(preview)}>Confirmar {preview.name}</MysticButton>
+          <MysticButton variant="ghost" onClick={onBack}>Voltar</MysticButton>
+        </>
+      }
+    />
+  );
+}
+
+/**
+ * Passo Classe (Rodada de Recuperação §9/§10) — as 8 classes voltam a ser
+ * selecionáveis (a Fase 3 anterior tinha restringido a 1 só como escopo de
+ * vertical slice isolado; revertido explicitamente nesta rodada, que
+ * rejeita essa restrição como regressão). Cada classe tem vitrine visual
+ * própria (`classShowcaseProfile`, ver characters/visualRegistry.ts) — nunca
+ * mais um ícone de poção/item genérico representando uma classe inteira.
+ */
+function ClassPicker({
+  classIndex,
+  setClassIndex,
+  onConfirm,
+  onBack,
+  stepLabel,
+  characterName,
+}: {
+  classIndex: number;
+  setClassIndex: Dispatch<SetStateAction<number>>;
+  onConfirm: (c: ClassDefinition) => void;
+  onBack: () => void;
+  stepLabel: string;
+  characterName: string;
+}) {
+  const current = CLASSES[classIndex];
+  const theme = getClassTheme(current.id);
+  const showcase = classShowcaseProfile(current.id);
+
+  return (
+    <CreationStage
+      eyebrow={stepLabel}
+      title={current.name}
+      subtitle={current.tagline}
+      mainAccent={theme.accent}
+      main={
+        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          {showcase?.portrait ? (
+            <img src={showcase.portrait} alt="" />
+          ) : (
+            <ItemIcon motif={theme.particleMotif} size={132} color={theme.accent} />
+          )}
+          <div style={{ position: 'absolute', top: 4, right: 4 }}>
+            <ArcaneSigil identity={arcaneIdentityForClass(current.id)} zone="controle" size={36} />
+          </div>
+        </div>
+      }
+      secondary={<ClassDetailCard classDef={current} />}
+      controls={
+        <>
+          <div className="class-carousel-nav">
+            <MysticButton variant="ghost" style={{ padding: '6px 14px' }} onClick={() => setClassIndex((i) => (i - 1 + CLASSES.length) % CLASSES.length)}>‹</MysticButton>
+            <div className="class-carousel-dots" style={{ margin: 0 }}>
+              {CLASSES.map((c, i) => (
+                <span key={c.id} className={`class-carousel-dot ${i === classIndex ? 'class-carousel-dot--active' : ''}`} />
+              ))}
+            </div>
+            <MysticButton variant="ghost" style={{ padding: '6px 14px' }} onClick={() => setClassIndex((i) => (i + 1) % CLASSES.length)}>›</MysticButton>
+          </div>
+          <p style={{ margin: '6px 0', fontSize: 11.5, color: 'var(--text-dim)', textAlign: 'center' }}>
+            A classe muda a atmosfera ao redor de {characterName || 'você'} (cor, partículas, sigilo) — o figurino do seu próprio corpo ainda não tem arte própria por classe.
+          </p>
+          <MysticButton variant="primary" onClick={() => onConfirm(current)}>Escolher {current.name}</MysticButton>
+          <MysticButton variant="ghost" onClick={onBack}>Voltar</MysticButton>
+        </>
+      }
+    />
+  );
+}
+
+/**
+ * Passos Princípio/Desejo/Medo/Limite (Rodada de Recuperação §13) — mesmo
+ * conteúdo recuperado do Artifact (docs/design/11-LEGACY-RECOVERY.md), mas
+ * reapresentado dentro do mesmo `CreationStage` usado no resto da criação
+ * — o personagem que o jogador já montou continua visível (continuidade
+ * atmosférica), em vez de uma lista de botões solta numa tela em branco,
+ * que lia como formulário. A mecânica de seleção não muda: tocar só
+ * destaca (`previewId`), Confirmar avança de verdade.
+ */
+function QuestionnaireStep({
+  stepLabel,
+  title,
+  items,
+  initialSelectedId,
+  mainAccent,
+  portrait,
+  onConfirm,
+  onBack,
+}: {
+  stepLabel: string;
+  title: string;
+  items: CreationOption[];
+  initialSelectedId: string | null;
+  mainAccent: string;
+  portrait?: CharacterVisualProfile;
+  onConfirm: (item: CreationOption) => void;
+  onBack: () => void;
+}) {
+  const [previewId, setPreviewId] = useState<string | null>(initialSelectedId);
+  const preview = items.find((i) => i.id === previewId) ?? null;
+
+  return (
+    <CreationStage
+      eyebrow={stepLabel}
+      title={title}
+      mainAccent={mainAccent}
+      main={portrait?.fullBody ? <img src={portrait.fullBody} alt="" /> : <ItemIcon motif="sigil" size={110} color={mainAccent} />}
+      secondary={
+        <div className="stack" style={{ gap: 6 }}>
+          {items.map((item) => (
+            <MysticButton
+              key={item.id}
+              variant="action"
+              className={item.id === previewId ? 'mystic-btn--selected' : ''}
+              style={{ textAlign: 'left' }}
+              onClick={() => setPreviewId(item.id)}
+            >
+              {item.text}
+            </MysticButton>
+          ))}
+        </div>
+      }
+      controls={
+        <>
+          <MysticButton variant="primary" disabled={!preview} onClick={() => preview && onConfirm(preview)}>
+            {preview ? 'Confirmar' : 'Escolha uma opção'}
+          </MysticButton>
           <MysticButton variant="ghost" onClick={onBack}>Voltar</MysticButton>
         </>
       }

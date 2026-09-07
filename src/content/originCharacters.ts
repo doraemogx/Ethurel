@@ -15,6 +15,7 @@
  * src/content/firstChapterScenes.ts) — a prova de replay pedida (spec §58).
  */
 import type { OriginCharacter } from '@/characters/types';
+import { IMG } from '@/ui/assetPath';
 
 export const ORIGIN_CHARACTERS: OriginCharacter[] = [
   {
@@ -46,7 +47,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['casa-bastiao', 'linhagem-cAida'],
     voiceStyle: 'Formal, medido, escolhe poucas palavras — desconfia de quem fala demais.',
     startingIndoleBias: { honra: 8, autocontrole: 6, impulsividade: -4 },
-    visualProfile: { id: 'origin-serel-doventh', visualTheme: 'guardiao-do-bastiao', presentation: 'masculino' },
+    visualProfile: { id: 'origin-serel-doventh', portrait: `${IMG}/portraits/vampire-neutral.webp`, visualTheme: 'guardiao-do-bastiao', presentation: 'masculino' },
   },
   {
     // BLOCKER CANÔNICO A resolvido (docs/canon/origin-characters/COMPARISON.md):
@@ -79,7 +80,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['ex-arquivo-vertido', 'agente-vigilia', 'selo-rompido'],
     voiceStyle: 'Precisa, observadora, evita afirmar o que não pode provar.',
     startingIndoleBias: { manipulacao: 4, pragmatismo: 5, lealdade: -2 },
-    visualProfile: { id: 'origin-ynara-voss', visualTheme: 'andarilho-do-selo', presentation: 'feminino' },
+    visualProfile: { id: 'origin-ynara-voss', portrait: `${IMG}/portraits/darkprincess-neutral.webp`, visualTheme: 'andarilho-do-selo', presentation: 'feminino' },
   },
   {
     id: 'doran-kessig',
@@ -104,7 +105,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['refugiado-cinzas-longas', 'divida-nao-paga'],
     voiceStyle: 'Informal, ligeiramente teatral, esconde desconforto atrás de piadas.',
     startingIndoleBias: { impulsividade: 6, pragmatismo: -3, compaixao: 3 },
-    visualProfile: { id: 'origin-doran-kessig', visualTheme: 'lancador-de-ossos', presentation: 'masculino' },
+    visualProfile: { id: 'origin-doran-kessig', portrait: `${IMG}/portraits/viajante-b-neutral.webp`, visualTheme: 'lancador-de-ossos', presentation: 'masculino' },
   },
   {
     // BLOCKER CANÔNICO B resolvido (docs/canon/origin-characters/COMPARISON.md):
@@ -138,7 +139,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['ex-culto-do-selo', 'queima-sobrevivida'],
     voiceStyle: 'Direta, intensa, fala pouco sobre o próprio corpo mas muito sobre limites.',
     startingIndoleBias: { autocontrole: 7, impulsividade: 4, honra: -2 },
-    visualProfile: { id: 'origin-mireth-sable', visualTheme: 'portador-de-cinza', presentation: 'feminino' },
+    visualProfile: { id: 'origin-mireth-sable', portrait: `${IMG}/portraits/pyromancer.webp`, visualTheme: 'portador-de-cinza', presentation: 'feminino' },
   },
   {
     // BLOCKER CANÔNICO C resolvido (docs/canon/origin-characters/COMPARISON.md):
@@ -172,6 +173,6 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['fronteira-partida-nativo', 'irma-desaparecida'],
     voiceStyle: 'Calmo, econômico, só se alonga quando fala do musgo ou da fronteira.',
     startingIndoleBias: { compaixao: 6, autocontrole: 5, pragmatismo: 2 },
-    visualProfile: { id: 'origin-corwin-thale', visualTheme: 'arauto-do-musgo', presentation: 'masculino' },
+    visualProfile: { id: 'origin-corwin-thale', portrait: `${IMG}/portraits/oracle.webp`, visualTheme: 'arauto-do-musgo', presentation: 'masculino' },
   },
 ];

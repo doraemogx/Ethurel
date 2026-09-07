@@ -78,7 +78,20 @@ export function retrieveCanonContext(query: CanonRetrievalQuery): CanonContextBu
       summaryLines.push(`[NPC] ${entitySummaryLine(npc)}`);
       npcDossier = findCanonNpcDossier(npc.canonicalId);
       if (npcDossier) {
-        summaryLines.push(`[NPC-DOSSIÊ] ${npcDossier.canonicalName}: ${npcDossier.profession} Segredo: ${npcDossier.secret}`);
+        summaryLines.push(`[NPC-DOSSIÊ] ${npcDossier.canonicalName}: ${npcDossier.profession}`);
+        // Rodada de Recuperação §12/§J: o segredo NUNCA pode ir na mesma
+        // linha de fatos públicos — antes disso, `[NPC-DOSSIÊ] ... Segredo:
+        // X` chegava ao prompt da IA remota sem nenhuma instrução de que
+        // aquilo era autoral/oculto, o que o próprio usuário confirmou ter
+        // vazado num teste real. A tag abaixo é a instrução comportamental:
+        // dá ao narrador o que ele precisa pra atuar a evasão/desconfiança
+        // do NPC de forma verossímil, sem nunca ser motivo pra ele
+        // simplesmente contar o segredo — reforçado de novo, de forma
+        // geral (não só pra este campo), no system prompt do Worker
+        // (server/narrative-proxy/worker.ts).
+        summaryLines.push(
+          `[NPC-SEGREDO-AUTORAL — NUNCA REVELAR AO JOGADOR, use só para guiar tom/evasão/comportamento] ${npcDossier.canonicalName}: ${npcDossier.secret}`
+        );
         for (const rel of npcDossier.relations) summaryLines.push(`[NPC-RELAÇÃO] ${npcDossier.canonicalName} ↔ ${rel.npcName}: ${rel.nature}`);
       }
     }

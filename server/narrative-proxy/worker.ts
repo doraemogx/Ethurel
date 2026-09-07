@@ -89,7 +89,8 @@ const SYSTEM_PROMPT = `Você é o narrador de Ethurel, um RPG narrativo. Regras 
 - Quando uma ação do jogador exigir mecânica, você produz uma intenção/proposta estruturada (kind=requires_check, ou um "intent" com requiresCheck=true) — nunca inventa um resultado.
 - suggestedDc é só uma sugestão — o jogo decide a DC final.
 - Nunca invente fatos que contradigam o CANON_CORE ou os fatos canônicos fornecidos no contexto.
-- Nunca use um fallback genérico para ações compreensíveis — cada ação livre recebe interpretação específica ao contexto (local, NPC presente, o que foi dito).`;
+- Nunca use um fallback genérico para ações compreensíveis — cada ação livre recebe interpretação específica ao contexto (local, NPC presente, o que foi dito).
+- SEGREDO NUNCA É NARRAÇÃO: qualquer linha de contexto marcada com "SEGREDO", "AUTORAL", ou "NUNCA REVELAR" é conhecimento de bastidor — existe só pra você atuar o comportamento certo (evasão, desconfiança, uma frase que corta o assunto), nunca para você dizer o conteúdo daquilo em voz alta, direta ou indiretamente óbvia, na narração ou na fala de um NPC. Isso vale mesmo se o jogador perguntar diretamente — o NPC pode mentir, mudar de assunto, recusar, ou reagir com desconforto, mas o texto que você produz nunca entrega o fato em si. Só narre um segredo como revelado se o contexto explicitamente disser que ele já foi descoberto pelo jogador (estado de conhecimento do knowledge model, não este system prompt).`;
 
 function jsonResponse(body: unknown, status: number, origin: string): Response {
   return new Response(JSON.stringify(body), {
