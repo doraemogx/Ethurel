@@ -35,7 +35,7 @@ import { upsertKnowledge } from '@/domain/knowledge';
 import { NPCS } from '@/data/npcs';
 import { visualProfile, resolveExpressionImage } from '@/characters/visualRegistry';
 import { buildNarrativeContext } from '@/narrative/NarrativeContextBuilder';
-import type { InterpretedAction } from '@/ai/NarrativeProvider';
+import type { InterpretedAction, SuggestedAction } from '@/ai/NarrativeProvider';
 import { resolveNarrativeAction } from '@/ai/actionContract';
 import { loadSettings } from '@/save/settingsStore';
 import { useGame } from '@/app/GameContext';
@@ -117,6 +117,14 @@ export function SceneScreen() {
   const [echoReveal, setEchoReveal] = useState<{ title: string; description: string } | null>(null);
   const [justHurt, setJustHurt] = useState(false);
   const [interpreting, setInterpreting] = useState(false);
+  // Sugestões contextuais dinâmicas (Rodada de Recuperação §O) — complemento
+  // sempre disponível às ações autorais fixas da cena (`eligibleActions`,
+  // abaixo). Vêm do mesmo `NarrativeEngine` usado por "Outra ação" — local
+  // (determinístico, por ambiente) ou remoto (IA real), nunca hardcoded na
+  // UI. Nunca decidem mecânica sozinhas: escolher uma rotea pelo mesmíssimo
+  // `submitFreeAction` do texto livre, então passa pela mesma interpretação
+  // + `resolveNarrativeAction` que qualquer ação digitada passaria.
+  const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
 
   useEffect(() => {
     setTextDone(settings.textSpeed === 'instant');
@@ -167,6 +175,28 @@ export function SceneScreen() {
     updateAndPersist((draft) => {
       draft.narrative.flags.push('injury-note-shown');
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textDone, sceneId]);
+
+  /** Busca sugestões contextuais novas (§O) — local ou remota, via o mesmo
+   * `NarrativeEngine` de sempre. Chamada quando a cena termina de "digitar"
+   * e de novo depois que qualquer ação livre resolve, pra sempre haver algo
+   * além de "Fazer outra coisa..." na tela — nunca um beco sem saída. */
+  async function refreshSuggestions() {
+    const npc = NPCS.find((n) => n.location === location.id && n.alive);
+    const context = buildNarrativeContext(save, location, sceneId, { npcId: npc?.id, npcName: npc?.name });
+    try {
+      const response = await narrativeEngine.requestNarration({ kind: 'scene', context });
+      setSuggestions(response.suggestedActions);
+    } catch {
+      setSuggestions([]);
+    }
+  }
+
+  useEffect(() => {
+    if (!textDone) return;
+    setSuggestions([]);
+    refreshSuggestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textDone, sceneId]);
 
@@ -297,6 +327,7 @@ export function SceneScreen() {
             });
           }
           setPendingCheck(null);
+          refreshSuggestions();
         },
       });
       return;
@@ -322,6 +353,7 @@ export function SceneScreen() {
           tags: ['exploracao', 'raiz-sussurrou'],
         });
       });
+      refreshSuggestions();
       return;
     }
 
@@ -395,12 +427,13 @@ export function SceneScreen() {
    * ainda passa pelo mesmo `D20Check`/`pendingCheck` usado pelas ações fixas
    * da cena (DC continua decidido aqui, com fallback 12 se a IA não sugerir).
    */
-  async function submitFreeAction() {
-    const text = freeText.trim();
+  async function submitFreeAction(explicitText?: string) {
+    const text = (explicitText ?? freeText).trim();
     if (!text || interpreting) return;
     setFreeText('');
     setComposerOpen(false);
     setInterpreting(true);
+    setSuggestions([]);
 
     const npc = NPCS.find((n) => n.location === location.id && n.alive);
     const context = buildNarrativeContext(save, location, sceneId, {
@@ -446,6 +479,7 @@ export function SceneScreen() {
         : null;
       if (resolution && !resolution.allowed) {
         setNote({ kind: 'narrator', text: resolution.reason ?? 'Isso não é possível agora.' });
+        refreshSuggestions();
         return;
       }
       const attribute = resolution?.attribute ?? interpreted.requestedCheck?.attribute ?? 'mente';
@@ -462,6 +496,7 @@ export function SceneScreen() {
           setNote({ kind: 'attribute', tag: ATTR_TAG[attribute], text: result });
           logWitnessedEvent(result, ['acao-livre']);
           setPendingCheck(null);
+          refreshSuggestions();
         },
       });
       return;
@@ -472,6 +507,7 @@ export function SceneScreen() {
     if (interpreted.kind === 'possible' || interpreted.kind === 'partial') {
       logWitnessedEvent(narration, ['acao-livre']);
     }
+    refreshSuggestions();
   }
 
   const zone = arcaneZone(character.tension);
@@ -592,6 +628,22 @@ export function SceneScreen() {
                 {a.label}
               </MysticButton>
             ))}
+            {/* Sugestões contextuais dinâmicas (§O) — complemento sempre
+                disponível às ações autorais acima, nunca as substitui.
+                Escolher uma rotea pela mesma interpretação/resolução do
+                texto livre (§P), não por um handler próprio. */}
+            {suggestions.map((s) => (
+              <MysticButton
+                key={s.id}
+                variant="action"
+                originLabel={s.unlockedBy}
+                tagKind={s.unlockedBy ? 'attribute' : undefined}
+                disabled={interpreting}
+                onClick={() => submitFreeAction(s.label)}
+              >
+                {s.label}
+              </MysticButton>
+            ))}
           </div>
         )}
 
@@ -631,7 +683,7 @@ export function SceneScreen() {
                 fontSize: 14,
               }}
             />
-            <MysticButton variant="primary" onClick={submitFreeAction} disabled={interpreting}>
+            <MysticButton variant="primary" onClick={() => submitFreeAction()} disabled={interpreting}>
               {interpreting ? '…' : 'Ir'}
             </MysticButton>
           </div>

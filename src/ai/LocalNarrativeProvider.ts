@@ -4,8 +4,49 @@ import type {
   NarrativeProvider,
   NarrativeRequest,
   NarrativeResponse,
+  SuggestedAction,
 } from '@/ai/NarrativeProvider';
 import type { NarrativeActionIntent } from '@/ai/actionContract';
+
+/**
+ * Sugestões genéricas por ambiente (Rodada de Recuperação §O) — cobrem o
+ * caso "o roteiro fixo da cena acabou, ou o jogador já usou Outra Ação, e a
+ * tela não pode ficar sem nada além de 'Fazer outra coisa...'". Não
+ * substituem as ações autorais da cena (`FIRST_CHAPTER_SCENES`, ainda
+ * escritas à mão e mostradas primeiro) — são o complemento sempre
+ * disponível, filtrado por presença de NPC e sem repetir uma pergunta já
+ * feita nesta localização (`recentEvents`, memória real do WorldEventLog).
+ */
+const AMBIENT_SUGGESTIONS: Record<string, { id: string; label: string; unlockedBy?: string }[]> = {
+  village: [
+    { id: 'local-observe', label: 'Observar o povoado com atenção', unlockedBy: 'Mente' },
+    { id: 'local-listen', label: 'Prestar atenção nas conversas ao redor', unlockedBy: 'Presença' },
+    { id: 'local-market', label: 'Perguntar sobre notícias recentes' },
+  ],
+  forest: [
+    { id: 'local-observe', label: 'Observar a vegetação com atenção', unlockedBy: 'Mente' },
+    { id: 'local-listen', label: 'Escutar o que se move na mata', unlockedBy: 'Reflexo' },
+    { id: 'local-tracks', label: 'Procurar rastros no chão' },
+  ],
+  road: [
+    { id: 'local-observe', label: 'Observar a estrada em busca de marcos', unlockedBy: 'Mente' },
+    { id: 'local-listen', label: 'Ficar atento a quem se aproxima', unlockedBy: 'Reflexo' },
+  ],
+  cave: [
+    { id: 'local-observe', label: 'Observar as paredes de pedra', unlockedBy: 'Mente' },
+    { id: 'local-listen', label: 'Escutar o eco ao redor', unlockedBy: 'Presença' },
+  ],
+  fissure: [
+    { id: 'local-observe', label: 'Observar a distorção no ar', unlockedBy: 'Mente' },
+    { id: 'local-feel', label: 'Sentir a reação da Arcane em você' },
+  ],
+  ashlands: [
+    { id: 'local-observe', label: 'Observar as cinzas com atenção', unlockedBy: 'Mente' },
+  ],
+  archive: [
+    { id: 'local-observe', label: 'Procurar algo relevante nos registros', unlockedBy: 'Mente' },
+  ],
+};
 
 const MOOD_BY_DANGER_WORDS = [
   { words: ['fissura', 'ruptura', 'arcane'], mood: 'mysterious' as const },
@@ -43,10 +84,27 @@ export class LocalNarrativeProvider implements NarrativeProvider {
 
     return {
       narration,
-      suggestedActions: [],
+      suggestedActions: this.buildSuggestions(context),
       mood,
       requestedChecks: [],
     };
+  }
+
+  /** Gera as sugestões genéricas (ver AMBIENT_SUGGESTIONS acima) — nunca
+   * repete uma ação cujo texto já apareceu como `action` num WorldEvent
+   * recente nesta localização (memória real, spec §30: "não sugerir
+   * repetidamente a mesma pergunta"). Acrescenta uma opção de NPC quando
+   * há um presente. */
+  private buildSuggestions(context: NarrativeContext): SuggestedAction[] {
+    const pool = AMBIENT_SUGGESTIONS[context.ambientProfile] ?? AMBIENT_SUGGESTIONS.village;
+    const alreadyDone = new Set(context.recentEvents.map((e) => e.action));
+    const suggestions: SuggestedAction[] = pool.filter((s) => !alreadyDone.has(s.label)).slice(0, 3);
+
+    if (context.npcName && !alreadyDone.has(`Perguntar a ${context.npcName} o que ele sabe sobre este lugar`)) {
+      suggestions.unshift({ id: 'local-ask-npc', label: `Perguntar a ${context.npcName} o que ele sabe sobre este lugar` });
+    }
+
+    return suggestions.slice(0, 4);
   }
 
   async interpretFreeText(text: string, context: NarrativeContext): Promise<InterpretedAction> {

@@ -113,3 +113,36 @@ describe('LocalNarrativeProvider.interpretFreeText — roteamento por categoria 
     expect(long.kind).toBe('partial');
   });
 });
+
+describe('LocalNarrativeProvider.requestNarration — sugestões contextuais (Rodada de Recuperação §O)', () => {
+  const provider = new LocalNarrativeProvider();
+
+  it('nunca retorna suggestedActions vazio para um ambiente conhecido — nunca mais um beco sem saída além de "Fazer outra coisa"', async () => {
+    const response = await provider.requestNarration({ kind: 'scene', context: alone });
+    expect(response.suggestedActions.length).toBeGreaterThan(0);
+  });
+
+  it('cobre todo ambiente usado no jogo (village/forest/road/cave/fissure/ashlands/archive)', async () => {
+    const profiles = ['village', 'forest', 'road', 'cave', 'fissure', 'ashlands', 'archive'] as const;
+    for (const ambientProfile of profiles) {
+      const response = await provider.requestNarration({ kind: 'scene', context: ctx({ ambientProfile }) });
+      expect(response.suggestedActions.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('com NPC presente, inclui uma sugestão específica de falar com ele', async () => {
+    const response = await provider.requestNarration({ kind: 'scene', context: withTolven });
+    expect(response.suggestedActions.some((s) => s.label.includes('Tolven'))).toBe(true);
+  });
+
+  it('não repete uma sugestão cujo texto já é um WorldEvent recente nesta localização (memória real, spec §30)', async () => {
+    const already = ctx({
+      ambientProfile: 'village',
+      recentEvents: [
+        { id: '1', type: 'other', turn: 1, actor: 'Kael', action: 'Observar o povoado com atenção', location: 'varreth', witnesses: [], visibility: 'public', result: '', consequences: [], relatedEntities: [], tags: [], timestamp: Date.now() },
+      ],
+    });
+    const response = await provider.requestNarration({ kind: 'scene', context: already });
+    expect(response.suggestedActions.some((s) => s.label === 'Observar o povoado com atenção')).toBe(false);
+  });
+});
