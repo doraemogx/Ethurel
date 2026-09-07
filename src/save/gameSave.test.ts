@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadSlot, listSlotSummaries, hasAnyContinuableSave, forceSave, scheduleSave, flushSave, deleteSlot } from '@/save/gameSave';
 import { createSaveV1Fixture, createSaveV2Fixture, createSaveV3Fixture } from '@/save/testFixtures';
 import { saveStore } from '@/save/SaveStore';
+import { subscribeSaveFailure } from '@/save/saveFailureBus';
 import { createCharacterModel } from '@/domain/characterFactory';
 
 describe('gameSave (multi-slot, v6)', () => {
@@ -102,5 +103,51 @@ describe('gameSave (multi-slot, v6)', () => {
     expect(migrated.schemaVersion).toBe(6);
     expect(migrated.character).toBeNull(); // formatos incompatíveis, ver 003_to_004.ts
     expect(migrated.createdAt).toBe(v3.createdAt);
+  });
+});
+
+describe('Fase 2 §11 — feedback de falha de gravação (não apenas console.warn)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('forceSave notifica o saveFailureBus quando saveStore.save falha (quota/modo privado)', () => {
+    vi.spyOn(saveStore, 'save').mockReturnValue(false);
+    const listener = vi.fn();
+    const unsubscribe = subscribeSaveFailure(listener);
+
+    const save = loadSlot('slot1');
+    forceSave('slot1', save);
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ slot: 'slot1' }));
+    unsubscribe();
+  });
+
+  it('uma gravação bem-sucedida depois de uma falha emite null (limpa o aviso)', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeSaveFailure(listener);
+    const save = loadSlot('slot1');
+
+    vi.spyOn(saveStore, 'save').mockReturnValueOnce(false);
+    forceSave('slot1', save);
+    expect(listener).toHaveBeenLastCalledWith(expect.objectContaining({ slot: 'slot1' }));
+
+    vi.spyOn(saveStore, 'save').mockReturnValueOnce(true);
+    forceSave('slot1', save);
+    expect(listener).toHaveBeenLastCalledWith(null);
+
+    unsubscribe();
+  });
+
+  it('gravação bem-sucedida normal nunca dispara o aviso de falha', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeSaveFailure(listener);
+    const save = loadSlot('slot1');
+    forceSave('slot1', save);
+    expect(listener).toHaveBeenCalledWith(null);
+    unsubscribe();
   });
 });

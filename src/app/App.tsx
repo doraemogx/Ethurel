@@ -9,6 +9,7 @@ import { OriginCharacterScreen } from '@/ui/screens/OriginCharacterScreen';
 import { SettingsScreen } from '@/ui/screens/SettingsScreen';
 import { GameProvider } from '@/app/GameContext';
 import { InGameApp } from '@/app/InGameApp';
+import { SaveErrorBanner } from '@/ui/components/SaveErrorBanner';
 
 export type PreGameView =
   | { name: 'title' }
@@ -21,6 +22,15 @@ export type PreGameView =
   | { name: 'game'; slot: SaveSlotId };
 
 export function App() {
+  return (
+    <>
+      <SaveErrorBanner />
+      <AppView />
+    </>
+  );
+}
+
+function AppView() {
   const [view, setView] = useState<PreGameView>({ name: 'title' });
 
   if (view.name === 'game') {

@@ -13,6 +13,7 @@ import { migrate002To003 } from '@/save/migrations/002_to_003';
 import { migrate003To004 } from '@/save/migrations/003_to_004';
 import { migrate004To005 } from '@/save/migrations/004_to_005';
 import { migrate005To006 } from '@/save/migrations/005_to_006';
+import { emitSaveFailure } from '@/save/saveFailureBus';
 import { CLASSES } from '@/data/classes';
 
 export const SAVE_SLOT_IDS = ['slot1', 'slot2', 'slot3'] as const;
@@ -96,7 +97,12 @@ const debounceHandles = new Map<SaveSlotId, ReturnType<typeof setTimeout>>();
 
 function writeNow(slot: SaveSlotId, save: SaveDataV6): void {
   save.updatedAt = Date.now();
-  saveStore.save(slotKey(slot), save);
+  const ok = saveStore.save(slotKey(slot), save);
+  // Fase 2 §11: antes, uma falha aqui só virava console.warn dentro do
+  // SaveStore — o jogador nunca sabia que o progresso não foi salvo. Agora
+  // notifica quem estiver ouvindo (ver src/ui/components/SaveErrorBanner.tsx);
+  // um sucesso depois de uma falha limpa qualquer aviso pendente.
+  emitSaveFailure(ok ? null : { slot, timestamp: Date.now() });
   dirtySlots.delete(slot);
   const handle = debounceHandles.get(slot);
   if (handle) {
