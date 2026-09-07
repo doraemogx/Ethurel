@@ -61,8 +61,12 @@ describe('recorte seletivo por tipo (base para NarrativeContextBuilder consultar
   });
 
   it('canonBlockers() traz exatamente as entidades com decisão humana pendente', () => {
+    // Ynara Voss/Mireth Sable/Corwin Thale foram resolvidos (classId/originId
+    // alinhados ao Livro VI, sem conflito interno na Bíblia) — só Tolven Marr
+    // segue como blocker (biografia canônica em Veyr ainda não reconciliada
+    // com o papel dele em Varreth, ver CANON_CONFLICTS.md §4).
     const blockers = canonBlockers();
     const ids = blockers.map((b) => b.canonicalId).sort();
-    expect(ids).toEqual(['mireth-sable', 'tolven-marr', 'ynara-voss', 'corwin-thale'].sort());
+    expect(ids).toEqual(['tolven-marr']);
   });
 });

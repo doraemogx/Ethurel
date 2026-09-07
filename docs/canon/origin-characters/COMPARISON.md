@@ -1,5 +1,23 @@
 # Personagens de Origem — comparação campo a campo vs Livro VI
 
+> **Atualização — os 3 blockers abaixo foram RESOLVIDOS numa rodada
+> posterior.** Antes de corrigir, foi verificado que a Bíblia não tem
+> nenhuma versão conflitante para nenhum dos 3 personagens (as 8
+> sub-entradas de cada um no Livro VI repetem o mesmo par classe+origem sem
+> variação — só o texto-modelo genérico muda, nunca o fato declarado), então
+> não havia "conflito real dentro da própria Bíblia" a devolver como decisão
+> — a correção seguiu diretamente a hierarquia canônica. `classId`/`originId`
+> foram alinhados ao cânone em `src/content/originCharacters.ts`; como a
+> Bíblia não fornece prosa biográfica além do par classe+origem (só regras de
+> worldbuilding genéricas, repetidas em todo o Livro VI), o
+> background/segredo/relações de cada personagem foi adaptado para a
+> identidade corrigida, usando a identidade mecânica real da classe/origem
+> (`src/data/classes.ts`/`src/data/origins.ts`) como base — não inventando
+> fatos novos sobre o mundo, só reescrevendo a caracterização pessoal em
+> torno do fato canônico já estabelecido. Ver `src/canon/entityRegistry.ts`
+> para o status atualizado (`canonical`, não mais `blocker`). O texto
+> original da análise (pré-resolução) permanece abaixo para auditoria.
+
 > Resolve parcialmente `CANON_CONFLICTS.md` §3. Fonte: Bíblia V7, Livro
 > VI.1-8 (8 personagens × 8 sub-temas cada — infância/família, formação/
 > classe, primeiro fracasso, relações centrais, segredo autoral, objetivo/

@@ -131,43 +131,55 @@ aliases/deprecated names; (10) canon conflict registry.
 - **CANON_CORE definitivo (prioridade 1)** — atualizado (não recriado) para
   refletir os itens resolvidos nesta rodada (§3 geografia, §10 ação livre).
 
-**Não construído nesta rodada (honestamente fora do escopo autorizado — "não
-redesenhe", "não invente conteúdo novo") — plano registrado, não fingido como
-pronto:**
+**Completado numa segunda rodada** (após aprofundar a leitura da V7 nas
+partes necessárias — Livro II amostrado, Livro VII.001 completo, Livro
+VIII.1 amostrado):
 
-- **Timeline estruturada (prioridade 4)**: o Livro II (320 eventos
-  datados "a.P.") não foi lido em profundidade nesta rodada — só os títulos,
-  já catalogados na tabela acima. Implementar exigiria ler o corpo de 320
-  entradas e decidir quais são relevantes à fatia jogável atual (nenhuma, por
-  ora — a campanha do capítulo 1 não referencia eventos históricos
-  específicos). `WorldEventLog` (`src/domain/worldEvents.ts`, já
-  implementado desde a Fase 1 anterior) já cobre a timeline *de campanha* (o
-  que o jogador fez); a timeline *canônica pré-Ano-0* do Livro II é um
-  sistema separado, não iniciado.
-- **Location hierarchy (prioridade 5)**: parcialmente coberta pelo campo
-  `region` de `src/data/locations.ts` (corrigido nesta rodada para apontar
-  ao macrotterritório correto) + o novo Entity Registry (`kind: 'territory'`
-  vs `kind: 'location'`, com `notes` indicando o território de cada local).
-  Uma hierarquia completa (Território → Cidade → Bairro, como o Livro III
-  descreve para Varreth) não foi modelada em código — os bairros de Varreth
-  (`Livro III.008`) não foram lidos em detalhe específico (o corpo lido é o
-  texto-modelo genérico, sem nome de bairro concreto ainda extraído).
-- **NPC registry (prioridade 6)**: `src/data/npcs.ts` já existe (só Tolven,
-  1 entrada) — o Entity Registry agora também cataloga Tolven Marr
-  (`kind: 'npc'`, status `blocker` pela biografia canônica não reconciliada,
-  ver `CANON_CONFLICTS.md` §4). Os outros 149 NPCs-âncora do Livro VII não
-  foram lidos nem adicionados — fora de escopo (conteúdo novo).
-- **Faction registry (prioridade 7)**: Livro VIII (10 facções × 10 entradas)
-  não foi lido nesta rodada além do título já catalogado ("A Vigília", citada
-  em docs antigos, ainda não confirmada contra a V7). Nenhuma entrada de
-  facção foi adicionada ao Entity Registry ainda — precisaria de leitura
-  dedicada antes.
-- **Knowledge model (prioridade 8)**: `src/domain/knowledge.ts` já existe
-  (Fase 2, estados de conhecimento por save) mas não foi cruzado contra a
-  hierarquia de verdade do Livro 0.01 ("verdade autoral > fato histórico >
-  conhecimento institucional > testemunho > crença > rumor > propaganda >
-  hipótese", já citada em `CANON_CORE.md` §1) — fazer esse cruzamento é
-  trabalho de próxima rodada, não iniciado.
+- **Timeline estruturada (prioridade 4)** — `src/canon/timeline.ts` +
+  `timeline.test.ts`. Leitura de 10 entradas do Livro II (territórios/eras
+  diferentes, corpo completo) confirmou o mesmo padrão de texto-modelo
+  genérico já visto em Livro 0/III/IV/VI/VIII (§0) — os "320 episódios" usam
+  nomes de personagem gerados por contador (Arel/Mera/Torven N), não são 320
+  fatos historicamente únicos. Por isso o módulo **não** transcreve as 320
+  entradas (evitar falsa aparência de especificidade) — só os **5 marcos
+  fixos** citados identicamente em toda "Validação cronológica" amostrada
+  (Pacto dos Bastiões -1088, Queda do Arquivo -401, Fratura -117, Orven -63,
+  Concordata -41), que são fato canônico real, e os nomes de era observados.
+  `WorldEventLog` continua sendo a timeline *de campanha* (o que o jogador
+  fez) — sistema separado, já existente.
+- **Faction registry (prioridade 7)** — `src/canon/entityRegistry.ts`
+  ganhou `kind: 'faction'` com as 10 facções confirmadas pelo título (Livro
+  VIII.1-10); corpo lido só para "A Vigília" (VIII.1.1-2, mesmo texto-modelo
+  genérico) — detalhado em `docs/canon/factions/REGISTRY.md`. As outras 9
+  facções × 8 sub-entradas restantes não foram lidas.
+- **NPC registry (prioridade 6), aprofundado** — `src/canon/npcRegistry.ts`
+  + `npcRegistry.test.ts`: Livro VII.001 (Tolven Marr) lido por completo (5
+  sub-entradas) — ao contrário do resto da V7, é prosa bespoke real (local de
+  nascimento, profissão, relações nomeadas, segredo com pistas concretas,
+  rotina, arcos), não texto-modelo. Dossiê estruturado em
+  `docs/canon/npcs/tolven-marr.md`. Entity Registry ganhou 3 NPCs
+  relacionados (Thessa Aster, Hadrik Arven, Bram Kest — `not-implemented`).
+  A divergência com o Tolven do jogo (agora sabida ser também de profissão,
+  não só origem) permanece um blocker de decisão, não resolvida
+  silenciosamente — reconciliar tocaria diálogo/quest, fora do escopo desta
+  rodada. Os outros 149 NPCs-âncora do Livro VII não foram lidos.
+- **Knowledge model (prioridade 8)** — `docs/canon/knowledge-model-
+  crosswalk.md`: cruzamento documental (não mudança de código/schema) entre
+  as 8 camadas do Livro 0.01 e os 4 `KnowledgeState` já implementados —
+  mostra onde o jogo colapsa camadas canônicas distintas (ex.: `confirmed`
+  cobre 3 camadas: verdade autoral, fato histórico confirmado, conhecimento
+  institucional) e onde falta um estado (`testemunho` não tem equivalente
+  próprio). Mudar o `KnowledgeState` real é migração de save + rework de UI —
+  não feito, é decisão de design futura.
+
+**Location hierarchy (prioridade 5) — parcial, mesmo após a leitura
+adicional**: continua coberta só pelo campo `region` de
+`src/data/locations.ts` + Entity Registry (`kind: 'territory'` vs
+`kind: 'location'`). Os bairros de Varreth (`Livro III.008`) foram
+re-verificados nesta rodada e confirmados como texto-modelo genérico sem
+nome de bairro concreto — não há bairro nomeado para extrair ainda; uma
+hierarquia Território → Cidade → Bairro completa depende de a V7 eventualmente
+nomear bairros específicos, o que as entradas lidas até agora não fazem.
 
 ## Exemplo de recall seletivo (agora possível com o que foi construído)
 

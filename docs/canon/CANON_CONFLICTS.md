@@ -112,21 +112,22 @@ começar") — mas isso é uma decisão de escopo (a V7 tem 10 povos × dezenas 
 sub-entradas cada; usar todos não é trivial) que cabe ao usuário aprovar
 antes de qualquer rework.
 
-## §3 — Personagens de Origem: 4 de 5 nomes batem, mas a fonte parece ser a mesma Bíblia [PARCIALMENTE RESOLVIDO — 3 BLOCKERS CANÔNICOS ABERTOS]
+## §3 — Personagens de Origem: 4 de 5 nomes batem, mas a fonte parece ser a mesma Bíblia [RESOLVIDO]
 
-> **Comparação campo a campo feita nesta rodada** contra `Livro VI.1-8`
-> completo (8 personagens × 8 sub-temas) — ver
+> **Comparação campo a campo feita contra `Livro VI.1-8` completo** (8
+> personagens × 8 sub-temas) — ver
 > `docs/canon/origin-characters/COMPARISON.md` para a tabela completa e a
-> análise. Resumo: "Serel" → "Sera" Doventh corrigido (só o nome — classe e
-> origem já batiam). **3 blockers canônicos registrados, não resolvidos
-> silenciosamente**: Ynara Voss (origem diverge: jogo diz Culto do Selo,
-> cânone diz Arquivo Vertido), Mireth Sable (classe E origem divergem —
-> jogo tem, por coincidência, o par canônico de Asera Morn, não implementada),
-> Corwin Thale (classe diverge: jogo diz Caçador de Fissuras, cânone diz
-> Arauto do Musgo). Corrigir os 3 exige reescrever background/segredo/
-> relações — trabalho de conteúdo fora do escopo autorizado nesta rodada
-> ("não redesenhe"); decisão do usuário pendente. Texto original do
-> conflito mantido abaixo.
+> análise. "Serel" → "Sera" Doventh corrigido (só o nome — classe e origem já
+> batiam). **Os 3 blockers canônicos (Ynara Voss, Mireth Sable, Corwin
+> Thale) foram resolvidos**: verificado que a Bíblia não tem versão
+> conflitante para nenhum dos 3 (mesmo par classe+origem repetido sem
+> variação nas 8 sub-entradas de cada um — não havia "conflito real dentro
+> da própria Bíblia" a devolver como decisão), então `classId`/`originId`
+> foram alinhados ao cânone e a caracterização pessoal (background/segredo/
+> relações — que a Bíblia não fornece além do par classe+origem) foi
+> adaptada à identidade corrigida. Ver `src/canon/entityRegistry.ts`
+> (status `canonical`) e `docs/canon/origin-characters/COMPARISON.md` para o
+> detalhe de cada correção. Texto original do conflito mantido abaixo.
 
 **No jogo atual** (`src/content/originCharacters.ts`, Fase 2): 5 Personagens
 de Origem — Serel Doventh, Ynara Voss, Doran Kessig, Mireth Sable, Corwin
@@ -157,24 +158,30 @@ segredo, traits) foram escritos sem a Bíblia e **precisam ser comparados
 linha a linha com `Livro VI.1-5`** antes de decidir se são compatíveis,
 complementares, ou precisam ser reescritos para bater com o cânone.
 
-## §4 — NPC Tolven vs "Tolven Marr" [MÉDIO]
+## §4 — NPC Tolven vs "Tolven Marr" [MÉDIO — dados completos, decisão de reconciliação ainda pendente]
 
 **No jogo atual**: NPC único do capítulo 1, `id: 'tolven'`, `name: 'Tolven'`,
 "Guarda-caminho de Varreth", "Cansado, mas atento — desconfia de coisas que
 'não são naturais'".
 
-**Na Bíblia V7** (`Livro VII.001.1-5`, 145 ocorrências do nome): "Tolven
-Marr" — nasceu em **Veyr** (não Varreth), povo Humanos de Avarra, 5 entradas
-biográficas completas (infância, juventude/profissão, psicologia/crenças/
-voz, [não lidas: segredo/relações, rotina/arcos]).
+**Na Bíblia V7** (`Livro VII.001.1-5`, lido por completo nesta rodada): "Tolven
+Marr" — nasceu em **Veyr** (não Varreth), povo Humanos de Avarra, **ferreiro
+de profissão** (não guarda-caminho), com relações nomeadas (Thessa Aster,
+Hadrik Arven, Bram Kest), segredo autoral com 3 pistas concretas, rotina e 3
+arcos possíveis. Dossiê completo em `docs/canon/npcs/tolven-marr.md` e
+`src/canon/npcRegistry.ts`.
 
 **Provavelmente o mesmo personagem** (o sobrenome "Marr" simplesmente nunca
-foi usado no jogo) — mas a biografia canônica (nascido em Veyr) precisa ser
-reconciliada com o papel dele em Varreth no jogo (mudou-se para lá? A que
-idade? Por quê?) antes de tratar o diálogo/personalidade atual como
-definitivo. `Livro VII.001.3` ("psicologia, crenças e voz") ainda não foi
-lido — é a comparação mais importante a fazer antes de re-escrever qualquer
-fala dele.
+foi usado no jogo) — mas agora que a biografia completa foi lida, a
+divergência é maior do que "só o local de nascimento": **profissão também
+diverge** (ferreiro vs. guarda-caminho). Reconciliar exige reescrever
+diálogo e a moldura da quest do capítulo 1
+(`src/content/firstChapterQuest.ts`/`firstChapterScenes.ts`) — conteúdo/
+redesign fora do escopo autorizado nesta rodada. **Decisão do usuário
+pendente**: manter a divergência (variação desta campanha) ou autorizar
+reescrita futura do papel de Tolven para bater com "ferreiro nascido em
+Veyr, mudou-se para Varreth" (motivo da mudança precisaria ser inventado —
+a fonte não cobre isso).
 
 ## §5 — Origens e Classes: SEM conflito, confirmado compatível [informativo, não é problema]
 
@@ -229,16 +236,20 @@ tecnicamente, tanto um problema técnico quanto uma violação canônica direta.
 | 0 | Duplicação interna do Livro 0 | Baixo (nota de qualidade da fonte) | Informativo |
 | 1 | "Borda dos Musgos"/"Estrada Velha" ausentes da V7 | Crítico | **Resolvido** |
 | 2 | Ancestralidades da Fase 3 colidem com os 10 povos canônicos | Alto | Parcial (Musgo Antigo resolvido; outras 3 pendentes) |
-| 3 | Personagens de Origem: 4/5 nomes batem, 1 typo, 3 faltando | Alto | Parcial (nome corrigido; 3 blockers canônicos abertos) |
-| 4 | Tolven vs Tolven Marr (biografia a reconciliar) | Médio | Pendente |
+| 3 | Personagens de Origem: 4/5 nomes batem, 1 typo, 3 faltando | Alto | **Resolvido** (nome + 3 blockers canônicos corrigidos; 3 personagens canônicos ainda não implementados, ver nota) |
+| 4 | Tolven vs Tolven Marr (biografia a reconciliar) | Médio | Dados completos; decisão de reconciliação pendente |
 | 5 | Classes/Origens: sem conflito | — (informativo) | — |
 | 6 | Sistema de Ecos: nome coincide, mecanismo não verificado | Médio | Pendente |
 | 7 | Regra canônica de "sem fallback genérico" já violada | Crítico | **Resolvido** |
 
-### Blockers canônicos abertos (decisão do usuário necessária)
+### Blockers canônicos — histórico
 
-| ID | Descrição | Documento |
+| ID | Descrição | Status |
 |---|---|---|
-| A | Ynara Voss: origem/facção do jogo (Culto do Selo) diverge do cânone (Arquivo Vertido) | `docs/canon/origin-characters/COMPARISON.md` |
-| B | Mireth Sable: classe E origem divergem (jogo tem, por coincidência, o par canônico de Asera Morn) | `docs/canon/origin-characters/COMPARISON.md` |
-| C | Corwin Thale: classe do jogo (Caçador de Fissuras) diverge do cânone (Arauto do Musgo) | `docs/canon/origin-characters/COMPARISON.md` |
+| A | Ynara Voss: origem/facção do jogo (Culto do Selo) divergia do cânone (Arquivo Vertido) | **Resolvido** — `originId` corrigido |
+| B | Mireth Sable: classe E origem divergiam (jogo tinha, por coincidência, o par canônico de Asera Morn) | **Resolvido** — `classId`/`originId` corrigidos |
+| C | Corwin Thale: classe do jogo (Caçador de Fissuras) divergia do cânone (Arauto do Musgo) | **Resolvido** — `classId` corrigido |
+
+Nenhum blocker canônico aberto no momento (`src/canon/entityRegistry.ts`
+`canonBlockers()` retorna só Tolven Marr, §4 abaixo — biografia canônica em
+Veyr ainda não reconciliada com o papel dele em Varreth).

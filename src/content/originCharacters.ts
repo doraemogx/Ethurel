@@ -49,28 +49,36 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     visualProfile: { id: 'origin-serel-doventh', visualTheme: 'guardiao-do-bastiao', presentation: 'masculino' },
   },
   {
+    // BLOCKER CANÔNICO A resolvido (docs/canon/origin-characters/COMPARISON.md):
+    // Bíblia (Livro VI.2, sem conflito interno) liga Ynara a Arquivo Vertido,
+    // não Culto do Selo. `classId` já batia (Andarilho do Selo) e foi mantido.
+    // A Bíblia só confirma o par classe+origem, não fornece prosa biográfica
+    // (as 8 sub-entradas de cada Personagem de Origem repetem um texto-modelo
+    // genérico — ver CANON_CONFLICTS.md §0) — o background abaixo foi
+    // adaptado para a origem correta, mantendo o tema de "selar" que já
+    // conectava com a classe.
     id: 'ynara-voss',
     name: 'Ynara Voss',
     gender: 'feminino',
     classId: 'andarilho-do-selo',
-    originId: 'culto-do-selo',
+    originId: 'arquivo-vertido',
     approxAge: 'vinte e poucos',
-    catchphrase: 'Eu saí. Isso não significa que entendi por quê.',
-    shortHook: 'Ela fugiu do Culto do Selo — ou foi enviada para nunca sair dele de verdade.',
+    catchphrase: 'Um selo que ninguém vê não deixa de ter sido rompido.',
+    shortHook: 'Ela mesma enfraqueceu um selo do Arquivo Vertido — e nunca contou a ninguém o que escapou.',
     background:
-      'Recrutada ainda jovem pelo Culto do Selo, aprendeu os nós que prendem vontade. Fugiu — ou disse que fugiu. A Vigília a recrutou logo depois, para vigiar de dentro o que sobrou dos seus contatos antigos.',
-    personalGoal: 'Provar a si mesma que saiu por escolha, não por ter sido descartada.',
-    fear: 'Que a Vigília descubra que ela não discorda mais tanto do Culto quanto finge.',
-    knownFact: 'Reconhece qualquer símbolo do Culto do Selo à primeira vista, mesmo desgastado ou incompleto.',
+      'Cresceu nos corredores alagados do Arquivo Vertido aprendendo a arte de selar: não pessoas, textos — qualquer página que os catalogadores julgassem perigosa demais para circular. A Vigília a recrutou quando um selo que ela mesma aplicou falhou, e algo que devia ficar contido não ficou.',
+    personalGoal: 'Encontrar o que escapou do próprio selo antes que outra pessoa o encontre primeiro.',
+    fear: 'Que o que escapou já tenha encontrado outro par de mãos.',
+    knownFact: 'Reconhece à primeira vista quando um selo de contenção foi rompido, mesmo que pareça intacto por fora.',
     secret:
-      'Depois de ver o que a Ruptura realmente faz a uma pessoa, Ynara não tem mais certeza de que o Culto está errado sobre ela ser uma revelação, não um perigo — e não contou isso a ninguém da Vigília.',
-    traits: ['precisa', 'observadora', 'desconfiada de afeto fácil'],
+      'O selo não falhou por acidente — ela o enfraqueceu de propósito, convencida de que sabia melhor que os catalogadores o que aquela página continha. Ainda não sabe se estava certa.',
+    traits: ['precisa', 'observadora', 'carrega uma culpa que não divide com ninguém'],
     startingRelationships: [
-      { npcId: 'tolven', affinity: -5, note: 'Tolven reconhece os símbolos apagados na corda que ela carrega e fica visivelmente mais frio — não pergunta, mas também não esquece.' },
+      { npcId: 'tolven', affinity: 0, note: 'Tolven repara no jeito como ela lê qualquer coisa duas vezes antes de confiar — não desconfia dela, mas não entende de onde vem esse hábito.' },
     ],
-    uniqueTags: ['ex-culto', 'agente-vigilia'],
+    uniqueTags: ['ex-arquivo-vertido', 'agente-vigilia', 'selo-rompido'],
     voiceStyle: 'Precisa, observadora, evita afirmar o que não pode provar.',
-    startingIndoleBias: { manipulacao: 6, pragmatismo: 5, lealdade: -3 },
+    startingIndoleBias: { manipulacao: 4, pragmatismo: 5, lealdade: -2 },
     visualProfile: { id: 'origin-ynara-voss', visualTheme: 'andarilho-do-selo', presentation: 'feminino' },
   },
   {
@@ -99,53 +107,71 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     visualProfile: { id: 'origin-doran-kessig', visualTheme: 'lancador-de-ossos', presentation: 'masculino' },
   },
   {
+    // BLOCKER CANÔNICO B resolvido (docs/canon/origin-characters/COMPARISON.md):
+    // Bíblia (Livro VI.4, sem conflito interno) liga Mireth a Portadora de
+    // Cinza / Culto do Selo. O jogo tinha Tecelão do Véu / Arquivo Vertido —
+    // por coincidência, exatamente o par canônico de Asera Morn (Livro VI.6,
+    // não implementada). Classe E origem corrigidas; background reescrito
+    // (não existe prosa biográfica na Bíblia além do par classe+origem — ver
+    // nota em Ynara Voss acima) usando a própria identidade da nova classe
+    // ("a ferida vira porta; a dor vira poder", src/data/classes.ts) e da
+    // nova origem (Culto do Selo venera Ruptura como revelação).
     id: 'mireth-sable',
     name: 'Mireth Sable',
     gender: 'feminino',
-    classId: 'tecelao-do-veu',
-    originId: 'arquivo-vertido',
+    classId: 'portador-de-cinza',
+    originId: 'culto-do-selo',
     approxAge: 'vinte e poucos',
-    catchphrase: 'Todo padrão que se repete duas vezes está tentando dizer algo.',
-    shortHook: 'Ela roubou uma página do Arquivo Vertido que os próprios bibliotecários chamavam de erro de cópia.',
+    catchphrase: 'Eu decido até onde vou. Não o Culto.',
+    shortHook: 'A primeira do Culto do Selo a sobreviver à "queima" — e a primeira a sair depois de sobreviver.',
     background:
-      'Cresceu catalogando os corredores inferiores do Arquivo Vertido antes de a água os reclamar de vez. Encontrou uma página descrevendo Arcane "dobrando" o espaço — não apenas se movendo por ele — e os mestres insistiram que era um erro de escriba. Ela a levou embora antes que a Vigília selasse o que restava do arquivo.',
-    personalGoal: 'Descobrir para onde o padrão da página realmente leva, antes que outra pessoa o encontre primeiro.',
-    fear: 'Que completar o padrão termine algo que ela não entende e não consegue desfazer.',
-    knownFact: 'Sabe que os porões alagados do Arquivo Vertido guardam pelo menos uma sala inteira que nenhum catalogador vivo já leu.',
+      'Cresceu dentro do Culto do Selo ouvindo que Ruptura não é catástrofe, é revelação. Foi a primeira do próprio grupo a sobreviver ao que os mais velhos chamam de "a queima" — deixar a Arcane arder pelo corpo até quase o limite, de propósito. Saiu não por descrença, mas para decidir sozinha até onde ir.',
+    personalGoal: 'Provar, com o próprio corpo, até onde dá para chegar sem cruzar para o outro lado — sem que o Culto decida isso por ela.',
+    fear: 'Que o Culto estivesse certo sobre ela ser feita para atravessar, não para resistir.',
+    knownFact: 'Reconhece o padrão de queimadura ritual do Culto do Selo em qualquer pele, mesmo cicatrizada há anos.',
     secret:
-      'Ela não só encontrou a página — reproduziu a dobra uma vez, em segredo, e algo do outro lado reproduziu de volta. Está esperando para ver se acontece de novo.',
-    traits: ['metódica', 'reservada', 'fascinada pelo proibido'],
+      'Nas noites mais silenciosas ainda sente falta da certeza que o Culto oferecia — a de que o que ela é tem propósito, não é só risco sem direção. Não admite isso nem para si mesma na maior parte do tempo.',
+    traits: ['intensa', 'disciplinada por escolha própria, não por hábito', 'desconfia de quem promete certeza fácil'],
     startingRelationships: [
-      { npcId: 'tolven', affinity: 0, note: 'Tolven acha as perguntas dela educadas demais para serem só curiosidade — não desconfia, mas fica alerta.' },
+      { npcId: 'tolven', affinity: -2, note: 'Tolven reconhece as marcas rituais que ela tenta esconder sob a manga — não pergunta, mas mede a distância.' },
     ],
-    uniqueTags: ['ex-arquivo-vertido', 'pagina-roubada'],
-    voiceStyle: 'Precisa, um pouco distante, escolhe as palavras como quem cataloga.',
-    startingIndoleBias: { ambicao: 6, pragmatismo: 6, autocontrole: 4 },
-    visualProfile: { id: 'origin-mireth-sable', visualTheme: 'tecelao-do-veu', presentation: 'feminino' },
+    uniqueTags: ['ex-culto-do-selo', 'queima-sobrevivida'],
+    voiceStyle: 'Direta, intensa, fala pouco sobre o próprio corpo mas muito sobre limites.',
+    startingIndoleBias: { autocontrole: 7, impulsividade: 4, honra: -2 },
+    visualProfile: { id: 'origin-mireth-sable', visualTheme: 'portador-de-cinza', presentation: 'feminino' },
   },
   {
+    // BLOCKER CANÔNICO C resolvido (docs/canon/origin-characters/COMPARISON.md):
+    // Bíblia (Livro VI.5, sem conflito interno) liga Corwin a Arauto do
+    // Musgo, não Caçador de Fissuras (essa é a classe canônica de Kael
+    // Orren, Livro VI.7, não implementado). Origem (Fronteira Partida) já
+    // batia — mantida, então o gancho da irmã desaparecida (ligado à
+    // origem, não à classe) permanece válido. Só a profissão/classe foi
+    // reescrita, usando a identidade real de Arauto do Musgo (cura
+    // simbiótica com vida ao redor, src/data/classes.ts) em vez de
+    // rastreamento de fissuras por dinheiro.
     id: 'corwin-thale',
     name: 'Corwin Thale',
     gender: 'masculino',
-    classId: 'cacador-de-fissuras',
+    classId: 'arauto-do-musgo',
     originId: 'fronteira-partida',
     approxAge: 'trinta e poucos',
-    catchphrase: 'A fronteira não avisa. Ela só muda.',
-    shortHook: 'Ele rastreia a fissura por dinheiro — e por uma irmã que desapareceu perto dela há onze anos.',
+    catchphrase: 'A fronteira não avisa. O musgo, sim.',
+    shortHook: 'Ele cuida de quem vive na borda da fissura — e nunca parou de procurar a irmã que desapareceu ali.',
     background:
-      'Nasceu à vista da fissura arcana permanente, num povoado que trata a deformação como clima: algo que se contorna, não que se explica. Rastreia anomalias por encomenda, em parte porque lê distorção antes de qualquer outra pessoa notar, em parte porque perto da fissura é o único lugar onde não sente que falta algo.',
-    personalGoal: 'Mapear toda rota segura por terreno tocado pela fissura antes que ela mude de novo — por dinheiro, mas também porque alguém precisa.',
-    fear: 'Que a fissura esteja se movendo devagar, e ninguém em Varreth acreditaria nele se dissesse isso.',
-    knownFact: 'Consegue ler padrões de deformação da fissura o bastante para estimar, aproximadamente, há quanto tempo uma anomalia está ativa.',
+      'Nasceu à vista da fissura arcana permanente, num povoado onde quase nada cresce direito — exceto o musgo, que parece se dar melhor perto da distorção do que longe dela. Aprendeu a ouvir essa vida teimosa antes de aprender a temer a fissura. Hoje cuida de quem vive na borda, com as próprias mãos e o que o musgo empresta.',
+    personalGoal: 'Manter viva a franja de vegetação que ainda cresce perto da fissura — e, com ela, quem depende dela para não adoecer.',
+    fear: 'Que a fissura esteja se movendo devagar o bastante para matar o musgo antes que alguém perceba a mudança.',
+    knownFact: 'Sabe dizer, só pelo estado do musgo numa área, se a distorção arcana ali está piorando ou se estabilizando.',
     secret:
-      'Ele não rastreia a fissura só por ofício — sua irmã desapareceu perto da borda dela onze anos atrás, registrada como "perdida para a fronteira", e ele nunca parou de procurar um rastro do que aconteceu com ela.',
-    traits: ['observador', 'lacônico', 'teimoso'],
+      'Sua irmã desapareceu perto da borda da fissura onze anos atrás, registrada como "perdida para a fronteira". Ele aprendeu a curar em parte porque não conseguiu salvá-la, e nunca parou de procurar um rastro do que aconteceu com ela.',
+    traits: ['paciente', 'observador', 'teimoso'],
     startingRelationships: [
-      { npcId: 'tolven', affinity: 3, note: 'Tolven respeita rastreadores e troca informação com Corwin de vez em quando — o trata como alguém confiável, mas distante.' },
+      { npcId: 'tolven', affinity: 4, note: 'Tolven confia em quem cuida de gente sem cobrar — troca notícia da fronteira com Corwin sempre que os caminhos cruzam.' },
     ],
     uniqueTags: ['fronteira-partida-nativo', 'irma-desaparecida'],
-    voiceStyle: 'Direto, econômico, só elabora quando o assunto é a própria fronteira.',
-    startingIndoleBias: { pragmatismo: 6, autocontrole: 6, impulsividade: -3 },
-    visualProfile: { id: 'origin-corwin-thale', visualTheme: 'cacador-de-fissuras', presentation: 'masculino' },
+    voiceStyle: 'Calmo, econômico, só se alonga quando fala do musgo ou da fronteira.',
+    startingIndoleBias: { compaixao: 6, autocontrole: 5, pragmatismo: 2 },
+    visualProfile: { id: 'origin-corwin-thale', visualTheme: 'arauto-do-musgo', presentation: 'masculino' },
   },
 ];
