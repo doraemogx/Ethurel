@@ -47,6 +47,30 @@ describe('Índole/Reputação', () => {
     expect(kept.indole.honra).toBe(0);
   });
 
+  it('Fase 2 §6: ação sem testemunha nunca gera reputação, mesmo se reputationDelta for passado por engano', () => {
+    const state: SocialState = { indole: createInitialIndole(), reputation: createInitialReputation() };
+    const next = resolveWorldEvent(state, {
+      id: 'teste-sem-testemunha',
+      reputationDelta: [{ entity: 'varreth', delta: 20 }],
+      witnesses: 'none',
+    });
+    expect(next.reputation.varreth).toBeUndefined();
+  });
+
+  it('Fase 2 §6: rumor pode gerar reputação SEM alterar Índole (nenhum indoleDelta no evento)', () => {
+    const state: SocialState = { indole: createInitialIndole(), reputation: createInitialReputation() };
+    const next = resolveWorldEvent(state, {
+      id: 'rumor-espalhado',
+      reputationDelta: [{ entity: 'ynara-voss', delta: -8 }],
+      witnesses: 'public',
+      // Sem indoleDelta — é um rumor sobre o personagem, não uma ação real
+      // dele; não pode transformar quem ele É (Índole é padrão interno
+      // inferido de ações, Livro 0.07/CANON_CORE.md §7).
+    });
+    expect(next.reputation['ynara-voss']).toBe(-8);
+    expect(next.indole).toEqual(state.indole);
+  });
+
   it('valores de Índole ficam sempre dentro de [-100,100]', () => {
     const state: SocialState = { indole: createInitialIndole(), reputation: createInitialReputation() };
     const next = resolveWorldEvent(state, {

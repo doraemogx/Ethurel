@@ -5,6 +5,7 @@ import type {
   NarrativeRequest,
   NarrativeResponse,
 } from '@/ai/NarrativeProvider';
+import type { NarrativeActionIntent } from '@/ai/actionContract';
 
 const MOOD_BY_DANGER_WORDS = [
   { words: ['fissura', 'ruptura', 'arcane'], mood: 'mysterious' as const },
@@ -70,12 +71,44 @@ export class LocalNarrativeProvider implements NarrativeProvider {
     }
 
     if (/\bempurr\w*/.test(normalized) && mentionsNpc) {
-      return { kind: 'requires_check', requestedCheck: { attribute: 'vigor', reason: `Empurrar ${npc} não é um gesto pequeno.` } };
+      // Narrative Action Contract (Fase 2 §8): "empurro Tolven e tento pegar
+      // a chave" é uma intenção composta — física primária + adquirir item
+      // secundária. `intent`/`secondaryIntent` carregam essa leitura
+      // estruturada; `resolveNarrativeAction` (src/ai/actionContract.ts) é
+      // quem decide de verdade, nunca este provider.
+      const wantsItemToo = /\b(peg|roub|furt|agarr)\w*/.test(normalized);
+      const intent: NarrativeActionIntent = {
+        intent: 'physical_interaction',
+        target: context.npcId,
+        attempt: 'push',
+        requiresCheck: true,
+        suggestedAttribute: 'vigor',
+        ...(wantsItemToo ? { secondaryIntent: 'acquire_item' as const } : {}),
+      };
+      return { kind: 'requires_check', requestedCheck: { attribute: 'vigor', reason: `Empurrar ${npc} não é um gesto pequeno.` }, intent };
+    }
+
+    if (/\b(roub|furt)\w*/.test(normalized)) {
+      const intent: NarrativeActionIntent = { intent: 'acquire_item', attempt: 'steal', requiresCheck: true, suggestedAttribute: 'reflexo' };
+      return { kind: 'requires_check', requestedCheck: { attribute: 'reflexo', reason: 'Pegar algo sem ser notado exige discrição.' }, intent };
     }
 
     if (normalized.includes('?') || /\bpergunt\w*/.test(normalized)) {
       if (!npc) return { kind: 'possible', reason: 'Você fala a pergunta em voz alta. Ninguém por perto para responder.' };
       return { kind: 'possible', reason: `${npc} ouve a pergunta e considera antes de responder — o que exatamente ${npc} diz depende do que já houve entre vocês.` };
+    }
+
+    if (/\bn[ãa]o\s+(respond\w*|fa[çc]o\s+nada|digo\s+nada)\b/.test(normalized) || /\bme\s+recus\w*/.test(normalized)) {
+      return {
+        kind: 'possible',
+        reason: npc
+          ? `Você fica em silêncio. ${npc} nota — a ausência de resposta também diz algo, mesmo sem palavra nenhuma.`
+          : `Você não faz nada. O momento passa sem reação — e isso, por si, também é uma escolha registrada.`,
+      };
+    }
+
+    if (/\b(fug|foge)\w*/.test(normalized) || /\bsa[ií]\w*\s+corr\w*/.test(normalized)) {
+      return { kind: 'requires_check', requestedCheck: { attribute: 'reflexo', reason: 'Fugir sem escolher rota, só distância.' } };
     }
 
     if (/\b(examin|observ|investig|olh)\w*/.test(normalized)) {
@@ -102,6 +135,9 @@ export class LocalNarrativeProvider implements NarrativeProvider {
     }
     if (/\bsuspir\w*/.test(normalized)) {
       return { kind: 'possible', reason: 'Um suspiro longo. Nada muda ao redor, mas alguma coisa em você se acomoda, só um pouco.' };
+    }
+    if (/\bcant\w*/.test(normalized)) {
+      return { kind: 'possible', reason: `Você canta, sem se importar se é a hora certa. ${npc ? `${npc} interrompe o que fazia para ouvir, sem saber bem o que pensar disso.` : `O som se espalha por ${context.locationName}, estranho e um pouco fora de lugar.`}` };
     }
 
     if (/\b(deit|sent|ajoelh)\w*/.test(normalized)) {

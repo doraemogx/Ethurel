@@ -36,6 +36,7 @@ import { NPCS } from '@/data/npcs';
 import { visualProfile, resolveExpressionImage } from '@/characters/visualRegistry';
 import { buildNarrativeContext } from '@/narrative/NarrativeContextBuilder';
 import type { InterpretedAction } from '@/ai/NarrativeProvider';
+import { resolveNarrativeAction } from '@/ai/actionContract';
 import { loadSettings } from '@/save/settingsStore';
 import { useGame } from '@/app/GameContext';
 import { CombatScreen } from '@/ui/screens/CombatScreen';
@@ -434,8 +435,21 @@ export function SceneScreen() {
     };
 
     if (interpreted.kind === 'requires_check') {
-      const attribute = interpreted.requestedCheck?.attribute ?? 'mente';
-      const dc = interpreted.requestedCheck?.suggestedDc ?? 12;
+      // Narrative Action Contract (Fase 2 §8): quando a IA propôs uma
+      // intenção estruturada, o GameEngine (resolveNarrativeAction) é quem
+      // decide DC final e se a ação é sequer possível — nunca aceita
+      // suggestedDc às cegas. Sem `intent` (categorias mais simples), cai no
+      // caminho anterior (requestedCheck direto, DC default 12).
+      const npcHere = NPCS.find((n) => n.location === location.id && n.alive);
+      const resolution = interpreted.intent
+        ? resolveNarrativeAction(interpreted.intent, { targetPresent: Boolean(npcHere) })
+        : null;
+      if (resolution && !resolution.allowed) {
+        setNote({ kind: 'narrator', text: resolution.reason ?? 'Isso não é possível agora.' });
+        return;
+      }
+      const attribute = resolution?.attribute ?? interpreted.requestedCheck?.attribute ?? 'mente';
+      const dc = resolution?.dc ?? interpreted.requestedCheck?.suggestedDc ?? 12;
       const reason = interpreted.requestedCheck?.reason ?? text;
       setPendingCheck({
         label: text,

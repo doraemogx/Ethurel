@@ -13,6 +13,7 @@
  */
 import type { AdvantageState } from '@/domain/dice';
 import type { WorldEvent } from '@/domain/worldEvents';
+import type { NarrativeActionIntent } from '@/ai/actionContract';
 
 export type NarrativeMood = 'neutral' | 'tense' | 'hopeful' | 'grim' | 'mysterious' | 'triumphant';
 
@@ -78,7 +79,16 @@ export interface InterpretedAction {
   kind: InterpretedActionKind;
   reason?: string;
   requestedCheck?: RequestedCheck;
+  /** Narrative Action Contract (spec Fase 2 §8, `src/ai/actionContract.ts`)
+   * — leitura estruturada da intenção, para ações compostas (ex.: "empurro
+   * Tolven e tento pegar a chave" = interação física + intenção secundária
+   * de adquirir item). Opcional: nem toda interpretação precisa da
+   * granularidade extra; quando presente, `resolveNarrativeAction` é quem
+   * decide o que realmente acontece, nunca este campo por si só. */
+  intent?: NarrativeActionIntent;
 }
+
+export type { NarrativeActionIntent, NarrativeIntentType, NarrativeActionResolution } from '@/ai/actionContract';
 
 export interface NarrativeProvider {
   readonly isAvailable: boolean;
