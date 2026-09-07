@@ -13,6 +13,7 @@ import { relationshipLabel } from '@/social/relationship';
 import { CLASSES } from '@/data/classes';
 import { ORIGINS } from '@/data/origins';
 import { findItemByName } from '@/data/items';
+import { findAncestry, findVariant } from '@/data/ancestries';
 import { NPCS } from '@/data/npcs';
 import { useGame } from '@/app/GameContext';
 
@@ -38,6 +39,8 @@ export function CharacterScreen() {
 
   const classDef = CLASSES.find((c) => c.id === character.classId);
   const origin = ORIGINS.find((o) => o.id === character.originId);
+  const ancestry = findAncestry(character.ancestryId);
+  const variant = findVariant(ancestry, character.ancestryVariantId);
   const theme = getClassTheme(character.classId);
   const identity = arcaneIdentityForClass(character.classId);
   const zone = arcaneZone(character.tension);
@@ -46,15 +49,20 @@ export function CharacterScreen() {
 
   return (
     <div className="screen">
-      <SceneBackdrop art={{ ...sceneArtFor('village'), particleColor: theme.accent }} arcaneOverlay={arcaneOverlayFor(zone)} />
+      <SceneBackdrop art={{ ...sceneArtFor('village'), particleColor: theme.accent, particleMotif: theme.particleMotif }} arcaneOverlay={arcaneOverlayFor(zone)} />
       <div className="screen__content">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-          <Portrait name={character.name} size={68} accent={theme.accent} imageUrl={character.visualProfile.portraitDefault} />
+          <Portrait name={character.name} size={68} accent={theme.accent} imageUrl={character.visualProfile.portrait} />
           <div style={{ flex: 1 }}>
             <h2 style={{ fontWeight: 400, margin: 0 }}>{character.name}</h2>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: theme.accentSoft, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               {classDef?.name} · {origin?.name}
             </p>
+            {ancestry && (
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-dim)' }}>
+                {ancestry.name}{variant ? ` (${variant.name})` : ''}
+              </p>
+            )}
             <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-dim)' }}>
               {GENDER_LABEL[character.gender] ?? character.gender} · Nível {character.level} · {character.xp} XP
             </p>

@@ -20,7 +20,9 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
     setSettings(next);
     saveSettings(next);
     if (patch.reduceMotion !== undefined) document.documentElement.classList.toggle('reduce-motion', patch.reduceMotion);
+    if (patch.masterVolume !== undefined) audioManager.setMasterVolume(patch.masterVolume);
     if (patch.musicOn !== undefined) audioManager.setMusicOn(patch.musicOn);
+    if (patch.ambienceOn !== undefined) audioManager.setAmbienceOn(patch.ambienceOn);
     if (patch.sfxOn !== undefined) audioManager.setSfxOn(patch.sfxOn);
   };
 
@@ -30,7 +32,22 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
       <div className="screen__content">
         <h2 style={{ fontWeight: 400, textAlign: 'center' }}>Configurações</h2>
         <div className="stack" style={{ marginTop: 20 }}>
+          <div className="slot-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Volume mestre</span>
+              <span className="status-chip">{Math.round(settings.masterVolume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(settings.masterVolume * 100)}
+              onChange={(e) => update({ masterVolume: Number(e.target.value) / 100 })}
+              style={{ width: '100%' }}
+            />
+          </div>
           <SettingRow label="Música" checked={settings.musicOn} onChange={(v) => update({ musicOn: v })} />
+          <SettingRow label="Ambiência" checked={settings.ambienceOn} onChange={(v) => update({ ambienceOn: v })} />
           <SettingRow label="Efeitos sonoros" checked={settings.sfxOn} onChange={(v) => update({ sfxOn: v })} />
           <SettingRow label="Reduzir movimento" checked={settings.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
           <div className="slot-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

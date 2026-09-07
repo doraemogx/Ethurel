@@ -125,7 +125,11 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
 
   return (
     <div className="screen">
-      <SceneBackdrop art={{ ...art, particleColor: theme.accent }} arcaneOverlay={overlay} />
+      {/* Este combate acontece na clareira leste de Borda dos Musgos, num ponto
+          de distorção Arcana local — reaproveita o tratamento "lua de sangue"
+          do mesmo fundo de Borda dos Musgos (spec §1/§12: mesma arte, tratamento
+          diferente, em vez de exigir um asset exclusivo para o encontro). */}
+      <SceneBackdrop art={{ ...art, particleColor: theme.accent, particleMotif: theme.particleMotif }} arcaneOverlay={overlay} backgroundImage="/assets/img/backgrounds/borda-musgos-bloodmoon.webp" />
       <div className="screen__content">
         <CombatSide name={enemy.name} flash={flash?.targetId === state.enemy.id ? flash : null}>
           <ArcaneSigil identity={{ classId: enemy.id, label: enemy.family, motif: enemy.arcaneAffinity === 'ruptura' ? 'sigil' : 'trail' }} zone={enemy.arcaneAffinity && enemy.arcaneAffinity !== 'nenhuma' ? enemy.arcaneAffinity : 'controle'} size={34} />
@@ -148,7 +152,7 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
         </div>
 
         <CombatSide name={character.name} flash={flash?.targetId === state.player.id ? flash : null}>
-          <Portrait name={character.name} size={44} accent={theme.accent} />
+          <Portrait name={character.name} size={44} accent={theme.accent} imageUrl={character.visualProfile.portrait} />
           <div style={{ flex: 1 }}>
             <StatusBar label="HP" value={state.player.hp} max={state.player.maxHp} color="var(--danger)" />
             <StatusBar label="Foco" value={state.player.arcaneFocus} max={state.player.arcaneMax} color={theme.accent} />

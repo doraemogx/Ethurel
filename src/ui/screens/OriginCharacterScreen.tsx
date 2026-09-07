@@ -57,7 +57,7 @@ export function OriginCharacterScreen({ slot, onBack, onDone }: OriginCharacterS
             ‹
           </MysticButton>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <Portrait name={selected.name} accent={theme.accent} size={84} imageUrl={selected.visualProfile.portraitDefault} />
+            <Portrait name={selected.name} accent={theme.accent} size={84} imageUrl={selected.visualProfile.portrait} />
             <ArcaneSigil identity={identity} zone="controle" size={28} />
           </div>
           <MysticButton variant="ghost" style={{ padding: '6px 14px' }} onClick={() => go(1)}>

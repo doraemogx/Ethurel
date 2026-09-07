@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { SaveSlotId } from '@/save/gameSave';
 import { TitleScreen } from '@/ui/screens/TitleScreen';
+import { CampaignsScreen } from '@/ui/screens/CampaignsScreen';
 import { SlotPickerScreen } from '@/ui/screens/SlotPickerScreen';
 import { NewGameChoiceScreen } from '@/ui/screens/NewGameChoiceScreen';
 import { CharacterCreationScreen } from '@/ui/screens/CharacterCreationScreen';
@@ -11,6 +12,7 @@ import { InGameApp } from '@/app/InGameApp';
 
 export type PreGameView =
   | { name: 'title' }
+  | { name: 'campaigns' }
   | { name: 'slotPicker'; mode: 'continue' | 'new' }
   | { name: 'newGameChoice'; slot: SaveSlotId }
   | { name: 'characterCreation'; slot: SaveSlotId }
@@ -35,7 +37,15 @@ export function App() {
         <TitleScreen
           onContinue={() => setView({ name: 'slotPicker', mode: 'continue' })}
           onNewGame={() => setView({ name: 'slotPicker', mode: 'new' })}
+          onCampaigns={() => setView({ name: 'campaigns' })}
           onSettings={() => setView({ name: 'settings' })}
+        />
+      );
+    case 'campaigns':
+      return (
+        <CampaignsScreen
+          onBack={() => setView({ name: 'title' })}
+          onPlay={() => setView({ name: 'slotPicker', mode: 'new' })}
         />
       );
     case 'slotPicker':

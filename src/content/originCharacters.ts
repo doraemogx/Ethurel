@@ -40,7 +40,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['casa-bastiao', 'linhagem-cAida'],
     voiceStyle: 'Formal, medido, escolhe poucas palavras — desconfia de quem fala demais.',
     startingIndoleBias: { honra: 8, autocontrole: 6, impulsividade: -4 },
-    visualProfile: { visualTheme: 'guardiao-do-bastiao' },
+    visualProfile: { id: 'origin-serel-doventh', visualTheme: 'guardiao-do-bastiao', presentation: 'masculino' },
   },
   {
     id: 'ynara-voss',
@@ -65,7 +65,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['ex-culto', 'agente-vigilia'],
     voiceStyle: 'Precisa, observadora, evita afirmar o que não pode provar.',
     startingIndoleBias: { manipulacao: 6, pragmatismo: 5, lealdade: -3 },
-    visualProfile: { visualTheme: 'andarilho-do-selo' },
+    visualProfile: { id: 'origin-ynara-voss', visualTheme: 'andarilho-do-selo', presentation: 'feminino' },
   },
   {
     id: 'doran-kessig',
@@ -90,7 +90,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['refugiado-cinzas-longas', 'divida-nao-paga'],
     voiceStyle: 'Informal, ligeiramente teatral, esconde desconforto atrás de piadas.',
     startingIndoleBias: { impulsividade: 6, pragmatismo: -3, compaixao: 3 },
-    visualProfile: { visualTheme: 'lancador-de-ossos' },
+    visualProfile: { id: 'origin-doran-kessig', visualTheme: 'lancador-de-ossos', presentation: 'masculino' },
   },
   {
     id: 'mireth-sable',
@@ -115,7 +115,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['ex-arquivo-vertido', 'pagina-roubada'],
     voiceStyle: 'Precisa, um pouco distante, escolhe as palavras como quem cataloga.',
     startingIndoleBias: { ambicao: 6, pragmatismo: 6, autocontrole: 4 },
-    visualProfile: { visualTheme: 'tecelao-do-veu' },
+    visualProfile: { id: 'origin-mireth-sable', visualTheme: 'tecelao-do-veu', presentation: 'feminino' },
   },
   {
     id: 'corwin-thale',
@@ -140,6 +140,6 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     uniqueTags: ['fronteira-partida-nativo', 'irma-desaparecida'],
     voiceStyle: 'Direto, econômico, só elabora quando o assunto é a própria fronteira.',
     startingIndoleBias: { pragmatismo: 6, autocontrole: 6, impulsividade: -3 },
-    visualProfile: { visualTheme: 'cacador-de-fissuras' },
+    visualProfile: { id: 'origin-corwin-thale', visualTheme: 'cacador-de-fissuras', presentation: 'masculino' },
   },
 ];

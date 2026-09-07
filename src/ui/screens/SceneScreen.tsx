@@ -5,7 +5,7 @@ import { MysticButton } from '@/ui/components/MysticButton';
 import { D20Check } from '@/ui/components/D20Check';
 import { Typewriter } from '@/ui/components/Typewriter';
 import { ArcaneSigil } from '@/ui/components/ArcaneSigil';
-import { composeVisualExperience } from '@/ui/visual/VisualExperienceEngine';
+import { composeExperience } from '@/ui/visual/ExperienceDirector';
 import { arcaneZone } from '@/arcane/zone';
 import { arcaneIdentityForClass } from '@/arcane/identity';
 import { LOCATIONS } from '@/data/locations';
@@ -32,6 +32,8 @@ import { resolveInsightForScene, type PassiveInsight } from '@/domain/passiveIns
 import { ECHO_FIRST_ANOMALY, instantiateEcho } from '@/domain/echoes';
 import { COMBAT_DEFEAT_OUTCOME } from '@/domain/failureOutcome';
 import { upsertKnowledge } from '@/domain/knowledge';
+import { NPCS } from '@/data/npcs';
+import { visualProfile, resolveExpressionImage } from '@/characters/visualRegistry';
 import { loadSettings } from '@/save/settingsStore';
 import { useGame } from '@/app/GameContext';
 import { CombatScreen } from '@/ui/screens/CombatScreen';
@@ -130,6 +132,21 @@ export function SceneScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textDone, sceneId]);
+
+  /** Percepção Passiva ocupa o palco sozinha (§14): enquanto não for
+   * reconhecida pelo jogador, nenhuma outra nota/ação aparece — é assim que
+   * se evita duas notas de atributo simultâneas (o bug reportado: um insight
+   * de Presença ficava na tela ao mesmo tempo que a nota de uma checagem
+   * ativa de Mente, porque eram estados independentes sem exclusão mútua). */
+  const insightOnboarded = save.narrative.flags.includes('passive-insight-onboarded');
+  function acknowledgeInsight() {
+    if (!insightOnboarded) {
+      updateAndPersist((draft) => {
+        draft.narrative.flags.push('passive-insight-onboarded');
+      });
+    }
+    setInsight(null);
+  }
 
   useEffect(() => {
     if (!justHurt) return;
@@ -386,7 +403,8 @@ export function SceneScreen() {
 
   const zone = arcaneZone(character.tension);
   const identity = arcaneIdentityForClass(character.classId);
-  const composition = composeVisualExperience({
+  const composition = composeExperience({
+    locationId: location.id,
     ambientProfile: location.ambientProfile,
     arcaneZone: zone,
     hpRatio: character.hp / character.maxHp,
@@ -402,7 +420,13 @@ export function SceneScreen() {
 
   return (
     <div className="screen">
-      <SceneBackdrop art={composition.art} arcaneOverlay={composition.arcaneOverlay} reduceMotion={settings.reduceMotion} />
+      <SceneBackdrop
+        art={composition.art}
+        arcaneOverlay={composition.arcaneOverlay}
+        reduceMotion={settings.reduceMotion}
+        backgroundImage={composition.backgroundImage}
+        foregroundImages={composition.foregroundImages}
+      />
       {composition.vignette !== 'none' && <div className={`vignette--${composition.vignette}`} style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }} />}
 
       <div className="screen__content">
@@ -416,22 +440,38 @@ export function SceneScreen() {
         </div>
 
         {textDone && insight && (
-          <div className="stage-box stage-box--attribute">
-            <span className="action-tag action-tag--attribute">◈ {ATTR_TAG[insight.attribute]}</span>
-            <p style={{ margin: '4px 0 0', fontSize: 14 }}>{insight.text}</p>
+          <div className="passive-insight">
+            <p className="passive-insight__eyebrow">◈ Percepção Passiva — {ATTR_TAG[insight.attribute]}</p>
+            <p className="passive-insight__lead">Você percebe...</p>
+            <p className="passive-insight__text">{insight.text}</p>
+            {!insightOnboarded && (
+              <p className="passive-insight__onboarding">
+                Isto não é uma escolha nem uma fala — sua Presença, Mente, Vigor ou Reflexo às vezes notam algo sozinhos,
+                sem que você precise procurar. Nunca mais de uma percepção por cena.
+              </p>
+            )}
+            <p className="passive-insight__continue" onClick={acknowledgeInsight}>Entendi ▸</p>
           </div>
         )}
 
-        {textDone && note && (
+        {textDone && !insight && note && (
           <div className={`stage-box stage-box--${note.kind}`}>
             {note.tag && <span className="action-tag action-tag--attribute">◈ {note.tag}</span>}
             <p style={{ margin: note.tag ? '4px 0 0' : 0, fontSize: 14 }}>{note.text}</p>
           </div>
         )}
 
-        {activeDialogue && (
+        {!insight && activeDialogue && (
           <div className="stage-box stage-box--npc">
-            <Portrait name={activeDialogue.node.lines[activeDialogue.index].speakerName} accent={composition.accent} size={44} />
+            <Portrait
+              name={activeDialogue.node.lines[activeDialogue.index].speakerName}
+              accent={composition.accent}
+              size={44}
+              imageUrl={resolveExpressionImage(
+                visualProfile(NPCS.find((n) => n.id === activeDialogue.node.lines[activeDialogue.index].speakerId)?.visualProfileId),
+                activeDialogue.node.lines[activeDialogue.index].expression
+              )}
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p className="dialogue-box__name">{activeDialogue.node.lines[activeDialogue.index].speakerName}</p>
               <p className="dialogue-box__text">{activeDialogue.node.lines[activeDialogue.index].text}</p>
@@ -456,7 +496,7 @@ export function SceneScreen() {
           </div>
         )}
 
-        {!activeDialogue && pendingCheck && (
+        {!insight && !activeDialogue && pendingCheck && (
           <D20Check
             label={pendingCheck.label}
             attribute={pendingCheck.attribute}
@@ -466,7 +506,7 @@ export function SceneScreen() {
           />
         )}
 
-        {textDone && !activeDialogue && !pendingCheck && (
+        {textDone && !insight && !activeDialogue && !pendingCheck && (
           <div className="stack">
             {eligibleActions.map((a) => (
               <MysticButton
@@ -482,7 +522,7 @@ export function SceneScreen() {
           </div>
         )}
 
-        {textDone && !activeDialogue && !pendingCheck && (
+        {textDone && !insight && !activeDialogue && !pendingCheck && (
           <div style={{ marginTop: 'auto', paddingTop: 14 }}>
             <MysticButton variant="ghost" onClick={() => setComposerOpen(true)}>
               Fazer outra coisa…
@@ -491,7 +531,7 @@ export function SceneScreen() {
         )}
       </div>
 
-      {composerOpen && (
+      {!insight && composerOpen && (
         <div className="composer-sheet">
           <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Outra ação</p>
           <div style={{ display: 'flex', gap: 8 }}>

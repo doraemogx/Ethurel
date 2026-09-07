@@ -7,6 +7,7 @@ export const NPCS: NPC[] = [
     name: NPC_NAME,
     role: 'Guarda-caminho de Varreth',
     location: 'varreth',
+    visualProfileId: 'npc-tolven',
     personality: 'Cansado, mas atento — desconfia de coisas que "não são naturais" antes de qualquer outra coisa.',
     relationship: 0,
     quests: ['raiz-sussurrou'],

@@ -87,14 +87,17 @@ export interface CompanionRelationshipState {
 export type TextSpeed = 'instant' | 'fast' | 'cinematic';
 
 export interface GameSettings {
+  /** Volume mestre (0-1) — multiplica todos os canais (Phase 3 §16 AudioDirector). */
+  masterVolume: number;
   musicOn: boolean;
+  ambienceOn: boolean;
   sfxOn: boolean;
   textSpeed: TextSpeed;
   reduceMotion: boolean;
 }
 
 export function defaultSettings(): GameSettings {
-  return { musicOn: true, sfxOn: true, textSpeed: 'fast', reduceMotion: false };
+  return { masterVolume: 0.8, musicOn: true, ambienceOn: true, sfxOn: true, textSpeed: 'fast', reduceMotion: false };
 }
 
 /** Estado narrativo de progresso — onde a cena/capítulo atual está, para o
@@ -143,10 +146,16 @@ export function createEmptySaveV4(): SaveDataV4 {
 
 // ---- V5 — Ecos, Diário de Campanha, confiança de NPC narrativa (Fase 2) ----
 
-/** Estado de descoberta de um local: 3 estados (Fase 2 §26-29, meio-termo
- * deliberado entre os 2 do Artifact antigo e os 4-5 cogitados e nunca
- * implementados — ver docs/design/11-LEGACY-RECOVERY.md). */
-export type LocationDiscoveryState = 'desconhecido' | 'conhecido' | 'visitado';
+/** Estado de descoberta de um local: 4 estados armazenados (Phase 3 §13 —
+ * mais granular que os 3 da Fase 2: `descoberto` fica entre "ouviu falar" e
+ * "esteve lá" — o nome aparece no mapa, mas o jogador nunca visitou). O 5º
+ * estado do prompt ("atual") não é armazenado por local — é derivado em
+ * tempo de render comparando com `currentLocationId` (`src/ui/screens/MapScreen.tsx`),
+ * porque "está aqui agora" é sempre verdade sobre exatamente um local e não
+ * faz sentido persistir como um valor que pode ficar desatualizado.
+ * String-union alargada é aditiva: saves antigos com os 3 valores originais
+ * continuam válidos sem migração (nenhum dos 3 valores mudou de nome). */
+export type LocationDiscoveryState = 'desconhecido' | 'conhecido' | 'descoberto' | 'visitado';
 
 export interface SaveDataV5 {
   schemaVersion: 5;

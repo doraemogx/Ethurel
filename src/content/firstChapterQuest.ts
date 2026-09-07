@@ -22,18 +22,20 @@ export const DIALOGUE_OFFER: DialogueNode = {
     {
       speakerId: NPC_ID,
       speakerName: NPC_NAME,
+      expression: 'suspicious',
       text: 'Você vem dos arredores? Bom. Há dias uma raiz rompeu perto da clareira leste — nada cresce direito por perto, e os bichos evitam o lugar.',
     },
     {
       speakerId: NPC_ID,
       speakerName: NPC_NAME,
+      expression: 'neutral',
       text: 'Não sei dizer o que é. Só sei que não é natural. Se for até lá e me disser o que encontrar, agradeço.',
     },
   ],
 };
 
 export const DIALOGUE_REMINDER: DialogueNode = {
-  lines: [{ speakerId: NPC_ID, speakerName: NPC_NAME, text: 'A clareira leste, lembra? Tome cuidado por lá.' }],
+  lines: [{ speakerId: NPC_ID, speakerName: NPC_NAME, expression: 'neutral', text: 'A clareira leste, lembra? Tome cuidado por lá.' }],
 };
 
 export const DIALOGUE_OBJECTIVE_COMPLETE: DialogueNode = {
@@ -41,9 +43,10 @@ export const DIALOGUE_OBJECTIVE_COMPLETE: DialogueNode = {
     {
       speakerId: NPC_ID,
       speakerName: NPC_NAME,
+      expression: 'surprised',
       text: 'Você voltou inteiro — e com uma prova. Isso pulsa devagar, como se ainda estivesse... acordando.',
     },
-    { speakerId: NPC_ID, speakerName: NPC_NAME, text: 'O que prefere fazer com isso?' },
+    { speakerId: NPC_ID, speakerName: NPC_NAME, expression: 'neutral', text: 'O que prefere fazer com isso?' },
   ],
   choices: [
     { id: 'report', text: 'Entregar para ser lacrado com segurança' },
@@ -52,11 +55,11 @@ export const DIALOGUE_OBJECTIVE_COMPLETE: DialogueNode = {
 };
 
 export const DIALOGUE_COMPLETED_REPORT: DialogueNode = {
-  lines: [{ speakerId: NPC_ID, speakerName: NPC_NAME, text: 'Bem pensado. Isso vai ficar bem longe de mãos curiosas.' }],
+  lines: [{ speakerId: NPC_ID, speakerName: NPC_NAME, expression: 'happy', text: 'Bem pensado. Isso vai ficar bem longe de mãos curiosas.' }],
 };
 
 export const DIALOGUE_COMPLETED_KEEP: DialogueNode = {
-  lines: [{ speakerId: NPC_ID, speakerName: NPC_NAME, text: 'Resolvido, então. Se você diz...' }],
+  lines: [{ speakerId: NPC_ID, speakerName: NPC_NAME, expression: 'angry', text: 'Resolvido, então. Se você diz...' }],
 };
 
 export const QUEST_BONUS_XP = 10;

@@ -113,12 +113,12 @@ export function JournalScreen() {
             <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>Nada registrado aqui ainda.</p>
           ) : (
             entries.map((e) => (
-              <div key={e.id} className="slot-card" style={{ cursor: 'default' }}>
+              <div key={e.id} className="journal-entry">
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <p className="slot-card__title">{e.title}</p>
+                  <p className="journal-entry__title">{e.title}</p>
                   {e.state !== 'confirmed' && <span className="status-chip">{STATE_LABEL[e.state]}</span>}
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0 0' }}>{e.summary}</p>
+                <p className="journal-entry__summary">{e.summary}</p>
               </div>
             ))
           )}

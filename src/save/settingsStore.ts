@@ -6,7 +6,10 @@ import { defaultSettings, type GameSettings } from '@/save/schema';
 const SETTINGS_KEY = 'settings';
 
 export function loadSettings(): GameSettings {
-  return saveStore.load<GameSettings>(SETTINGS_KEY) ?? defaultSettings();
+  // Mescla com defaults (não substitui) — configurações salvas antes da
+  // Phase 3 não têm `masterVolume`/`ambienceOn` ainda; sem isto, esses campos
+  // ficariam `undefined` e quebrariam o AudioDirector silenciosamente.
+  return { ...defaultSettings(), ...(saveStore.load<Partial<GameSettings>>(SETTINGS_KEY) ?? {}) };
 }
 
 export function saveSettings(settings: GameSettings): void {

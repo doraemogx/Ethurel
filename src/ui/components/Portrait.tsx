@@ -26,7 +26,7 @@ export function Portrait({ name, imageUrl, size = 52, accent = '#9f7fe0', active
       }}
     >
       {imageUrl ? (
-        <img src={imageUrl} alt={name} />
+        <img src={imageUrl} alt={name} loading="lazy" decoding="async" />
       ) : (
         <svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden>
           <defs>
