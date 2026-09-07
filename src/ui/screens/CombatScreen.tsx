@@ -3,8 +3,10 @@ import { SceneBackdrop } from '@/ui/components/SceneBackdrop';
 import { Portrait } from '@/ui/components/Portrait';
 import { MysticButton } from '@/ui/components/MysticButton';
 import { StatusBar } from '@/ui/components/StatusBar';
+import { ArcaneSigil } from '@/ui/components/ArcaneSigil';
 import { sceneArtFor, arcaneOverlayFor } from '@/ui/visual/sceneArt';
 import { getClassTheme } from '@/ui/visual/classThemes';
+import { arcaneIdentityForClass } from '@/arcane/identity';
 import { arcaneZone } from '@/arcane/zone';
 import { createPlayerCombatant, createEnemyCombatant, type CombatantState } from '@/combat/Combatant';
 import { createBattleState, type BattleState } from '@/combat/BattleState';
@@ -20,14 +22,29 @@ export interface CombatScreenProps {
   onFinished: (result: { victory: boolean; player: CombatantState }) => void;
 }
 
+type FlashKind = 'damage' | 'heal';
+interface Flash {
+  targetId: string;
+  kind: FlashKind;
+  amount?: number;
+  big: boolean;
+  seq: number;
+}
+
+const PLAYBACK_MS = 380;
+
 /**
- * Combate por turnos separado da narrativa (spec §40) — reaproveita
- * TurnManager/ActionResolver/Combatant sem alteração; a única
- * responsabilidade daqui é traduzir `BattleEvent[]` em reação visual (flash
- * no alvo atingido, cor por tipo) sem virar planilha (spec §42).
+ * Combate por turnos separado da narrativa (Fase 2 §44-45) — reaproveita
+ * TurnManager/ActionResolver/Combatant sem alteração nenhuma na lógica; a
+ * única responsabilidade daqui é reproduzir `BattleEvent[]` como uma
+ * sequência (wind-up → impacto → shake → número → reação), nunca aplicar
+ * tudo de uma vez como planilha. "Crítico" aqui é um limiar de
+ * apresentação (dano ≥ 35% do HP máx. do alvo), não uma mecânica nova — o
+ * combate não usa d20, o realce visual só reage ao tamanho do golpe.
  */
 export function CombatScreen({ character, classDef, enemy, onFinished }: CombatScreenProps) {
   const theme = getClassTheme(character.classId);
+  const identity = arcaneIdentityForClass(character.classId);
   const stateRef = useRef<BattleState | undefined>(undefined);
   if (!stateRef.current) {
     stateRef.current = createBattleState(
@@ -48,40 +65,58 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
 
   const [, setTick] = useState(0);
   const [log, setLog] = useState<string[]>([]);
-  const [flash, setFlash] = useState<{ targetId: string; kind: 'damage' | 'heal' | 'tension' } | null>(null);
+  const [flash, setFlash] = useState<Flash | null>(null);
   const [resolved, setResolved] = useState(false);
+  const [playingBack, setPlayingBack] = useState(false);
+  const seqRef = useRef(0);
 
   const state = stateRef.current;
 
   useEffect(() => {
     const events = managerRef.current!.runCombatStartTriggers();
-    applyEvents(events);
+    playback(events, () => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function applyEvents(events: BattleEvent[]): void {
-    for (const ev of events) {
+  function targetMaxHp(targetId: string): number {
+    return targetId === state.player.id ? state.player.maxHp : state.enemy.maxHp;
+  }
+
+  /** Reproduz os eventos em sequência com pequenas pausas — a lógica já
+   * decidiu tudo (TurnManager), isto só encena (spec §45). */
+  function playback(events: BattleEvent[], onComplete: () => void): void {
+    let i = 0;
+    const step = () => {
+      if (i >= events.length) {
+        setTick((t) => t + 1);
+        onComplete();
+        return;
+      }
+      const ev = events[i];
+      i += 1;
       if (ev.kind === 'message') setLog((prev) => [...prev.slice(-3), ev.text]);
-      if (ev.kind === 'damage') {
-        setFlash({ targetId: ev.targetId, kind: 'damage' });
-        window.setTimeout(() => setFlash(null), 380);
+      if (ev.kind === 'damage' || ev.kind === 'heal') {
+        seqRef.current += 1;
+        const big = ev.kind === 'damage' && ev.amount >= targetMaxHp(ev.targetId) * 0.35;
+        setFlash({ targetId: ev.targetId, kind: ev.kind, amount: ev.amount, big, seq: seqRef.current });
       }
-      if (ev.kind === 'heal') {
-        setFlash({ targetId: ev.targetId, kind: 'heal' });
-        window.setTimeout(() => setFlash(null), 380);
-      }
-    }
-    setTick((t) => t + 1);
+      setTick((t) => t + 1);
+      window.setTimeout(step, PLAYBACK_MS);
+    };
+    step();
   }
 
   const act = (action: PlayerAction) => {
-    if (resolved) return;
+    if (resolved || playingBack) return;
+    setPlayingBack(true);
     const events = managerRef.current!.runRound(action);
-    applyEvents(events);
-    if (state.phase === 'victory' || state.phase === 'defeat') {
-      setResolved(true);
-      window.setTimeout(() => onFinished({ victory: state.phase === 'victory', player: state.player }), 1200);
-    }
+    playback(events, () => {
+      setPlayingBack(false);
+      if (state.phase === 'victory' || state.phase === 'defeat') {
+        setResolved(true);
+        window.setTimeout(() => onFinished({ victory: state.phase === 'victory', player: state.player }), 1000);
+      }
+    });
   };
 
   const zone = arcaneZone(state.player.tension);
@@ -92,11 +127,12 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
     <div className="screen">
       <SceneBackdrop art={{ ...art, particleColor: theme.accent }} arcaneOverlay={overlay} />
       <div className="screen__content">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <CombatSide name={enemy.name} flashed={flash?.targetId === state.enemy.id ? flash.kind : null}>
+        <CombatSide name={enemy.name} flash={flash?.targetId === state.enemy.id ? flash : null}>
+          <ArcaneSigil identity={{ classId: enemy.id, label: enemy.family, motif: enemy.arcaneAffinity === 'ruptura' ? 'sigil' : 'trail' }} zone={enemy.arcaneAffinity && enemy.arcaneAffinity !== 'nenhuma' ? enemy.arcaneAffinity : 'controle'} size={34} />
+          <div style={{ flex: 1 }}>
             <StatusBar label="HP" value={state.enemy.hp} max={state.enemy.maxHp} color="var(--danger)" />
-          </CombatSide>
-        </div>
+          </div>
+        </CombatSide>
 
         <div style={{ flex: 1 }} />
 
@@ -111,25 +147,26 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
           </div>
         </div>
 
-        <CombatSide name={character.name} flashed={flash?.targetId === state.player.id ? flash.kind : null}>
-          <Portrait name={character.name} size={44} />
+        <CombatSide name={character.name} flash={flash?.targetId === state.player.id ? flash : null}>
+          <Portrait name={character.name} size={44} accent={theme.accent} />
           <div style={{ flex: 1 }}>
             <StatusBar label="HP" value={state.player.hp} max={state.player.maxHp} color="var(--danger)" />
             <StatusBar label="Foco" value={state.player.arcaneFocus} max={state.player.arcaneMax} color={theme.accent} />
             <StatusBar label="Tensão" value={state.player.tension} max={100} color="var(--gold)" />
           </div>
+          <ArcaneSigil identity={identity} zone={zone} size={30} />
         </CombatSide>
 
         {state.phase === 'player-select' && !resolved && (
           <div className="stack" style={{ marginTop: 10 }}>
-            <MysticButton variant="action" onClick={() => act({ type: 'basicAttack' })}>
+            <MysticButton variant="action" disabled={playingBack} onClick={() => act({ type: 'basicAttack' })}>
               Atacar
             </MysticButton>
             {classDef.abilities.map((ability) => (
               <MysticButton
                 key={ability.id}
                 variant="action"
-                disabled={state.player.arcaneFocus < ability.cost}
+                disabled={playingBack || state.player.arcaneFocus < ability.cost}
                 onClick={() => act({ type: 'ability', ability })}
               >
                 <strong>{ability.name}</strong>
@@ -137,10 +174,10 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
               </MysticButton>
             ))}
             <div style={{ display: 'flex', gap: 8 }}>
-              <MysticButton variant="ghost" style={{ flex: 1 }} onClick={() => act({ type: 'defend' })}>
+              <MysticButton variant="ghost" style={{ flex: 1 }} disabled={playingBack} onClick={() => act({ type: 'defend' })}>
                 Defender
               </MysticButton>
-              <MysticButton variant="ghost" style={{ flex: 1 }} onClick={() => act({ type: 'flee' })}>
+              <MysticButton variant="ghost" style={{ flex: 1 }} disabled={playingBack} onClick={() => act({ type: 'flee' })}>
                 Fugir
               </MysticButton>
             </div>
@@ -154,9 +191,11 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
   );
 }
 
-function CombatSide({ name, flashed, children }: { name: string; flashed: 'damage' | 'heal' | 'tension' | null; children: React.ReactNode }) {
+function CombatSide({ name, flash, children }: { name: string; flash: Flash | null; children: React.ReactNode }) {
+  const shaking = flash?.kind === 'damage';
   return (
     <div
+      className={shaking ? 'hit-shake' : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -164,13 +203,23 @@ function CombatSide({ name, flashed, children }: { name: string; flashed: 'damag
         width: '100%',
         padding: '6px 8px',
         borderRadius: 10,
+        position: 'relative',
         transition: 'background-color 0.15s ease',
-        background: flashed === 'damage' ? 'rgba(217,102,122,0.25)' : flashed === 'heal' ? 'rgba(143,209,152,0.2)' : 'transparent',
+        background: flash?.kind === 'damage' ? 'rgba(217,102,122,0.25)' : flash?.kind === 'heal' ? 'rgba(143,209,152,0.2)' : 'transparent',
       }}
     >
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, position: 'relative' }}>
         <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>{name}</div>
         {children}
+        {flash && flash.amount !== undefined && (
+          <span
+            key={flash.seq}
+            className={`damage-number ${flash.big ? 'damage-number--crit' : ''} ${flash.kind === 'heal' ? 'damage-number--heal' : 'damage-number--hit'}`.trim()}
+          >
+            {flash.kind === 'heal' ? '+' : '-'}
+            {flash.amount}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-export type InGameTab = 'scene' | 'map' | 'character';
+export type InGameTab = 'scene' | 'map' | 'journal' | 'character';
 
 export interface BottomNavProps {
   active: InGameTab;
@@ -8,6 +8,7 @@ export interface BottomNavProps {
 const TABS: { id: InGameTab; label: string }[] = [
   { id: 'scene', label: 'Cena' },
   { id: 'map', label: 'Mapa' },
+  { id: 'journal', label: 'Diário' },
   { id: 'character', label: 'Personagem' },
 ];
 

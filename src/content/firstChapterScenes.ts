@@ -14,6 +14,9 @@ export interface ContextualAction {
   unlockedBy?: string;
   requiresClassId?: string;
   requiresOriginId?: string;
+  /** Ação de atributo cru (recuperada do handoff — categoria de tag própria,
+   * ver docs/design/11-LEGACY-RECOVERY.md) — ex.: "[MENTE] Observar a praça". */
+  requiresAttribute?: 'vigor' | 'reflexo' | 'mente' | 'presenca';
 }
 
 export interface SceneScript {
@@ -31,7 +34,7 @@ export const FIRST_CHAPTER_SCENES: Record<SceneId, SceneScript> = {
       'Varreth acorda devagar. Fumaça fina sobe dos telhados; alguém bate um martelo em algum lugar perto demais para ser ignorado. Você chegou há pouco — o suficiente para ainda ser notado, não o bastante para ser reconhecido.',
     actions: [
       { id: 'talk-tolven', label: 'Falar com Tolven, o guarda-caminho' },
-      { id: 'observe-square', label: '[MENTE] Observar a praça com atenção' },
+      { id: 'observe-square', label: 'Observar a praça com atenção', unlockedBy: 'Mente', requiresAttribute: 'mente' },
     ],
   },
   'toward-clearing': {
@@ -41,10 +44,15 @@ export const FIRST_CHAPTER_SCENES: Record<SceneId, SceneScript> = {
       'A clareira leste fica a pouco mais de uma hora a pé. O musgo aqui cresce em espirais que não deveriam existir, e os pássaros pararam de cantar dois campos atrás.',
     actions: [
       { id: 'approach-root', label: 'Aproximar a mão da raiz', requiresClassId: 'portador-de-cinza', unlockedBy: 'Portador de Cinza' },
+      { id: 'read-the-fold', label: 'Ler os fios que a raiz rompeu', requiresClassId: 'tecelao-do-veu', unlockedBy: 'Tecelão do Véu' },
+      { id: 'read-the-age', label: 'Estimar há quanto tempo isto está ativo', requiresClassId: 'cacador-de-fissuras', unlockedBy: 'Caçador de Fissuras' },
+      { id: 'watch-from-shadow', label: 'Observar da sombra antes de se aproximar', requiresClassId: 'lamina-silenciosa', unlockedBy: 'Lâmina Silenciosa' },
+      { id: 'ask-the-moss', label: 'Perguntar ao musgo o que ele sabe', requiresClassId: 'arauto-do-musgo', unlockedBy: 'Arauto do Musgo' },
       { id: 'recognize-deformation', label: 'Você reconhece esta deformação', requiresOriginId: 'fronteira-partida', unlockedBy: 'Fronteira Partida' },
       { id: 'recall-house-fall', label: 'Isto lembra os registros da sua Casa', requiresOriginId: 'bastiao-caido', unlockedBy: 'Bastião Caído' },
       { id: 'recognize-culto-marks', label: 'Você reconhece um padrão nos esporos', requiresOriginId: 'culto-do-selo', unlockedBy: 'Culto do Selo' },
       { id: 'read-the-bones', label: 'Consultar os ossos antes de continuar', requiresOriginId: 'cinzas-longas', unlockedBy: 'Cinzas Longas' },
+      { id: 'recall-the-page', label: 'Você reconhece esta dobra do texto que roubou', requiresOriginId: 'arquivo-vertido', unlockedBy: 'Arquivo Vertido' },
       { id: 'continue-forward', label: 'Continuar em frente' },
     ],
   },

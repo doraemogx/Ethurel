@@ -1,4 +1,4 @@
-import type { SaveDataV4 } from '@/save/schema';
+import type { SaveDataV5 } from '@/save/schema';
 import type { Location } from '@/world/types';
 import type { NarrativeContext } from '@/ai/NarrativeProvider';
 import { CLASSES } from '@/data/classes';
@@ -11,7 +11,7 @@ import { WorldEventLog } from '@/domain/worldEvents';
  * local/tags, e o resultado mecânico já decidido (que a IA só dramatiza).
  */
 export function buildNarrativeContext(
-  save: SaveDataV4,
+  save: SaveDataV5,
   location: Location,
   sceneId: string,
   opts: { npcId?: string; npcName?: string; relevantTags?: string[]; mechanicalResult?: string } = {}

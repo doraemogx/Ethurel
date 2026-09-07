@@ -1,30 +1,30 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { SaveDataV4 } from '@/save/schema';
-import { createEmptySaveV4 } from '@/save/schema';
+import type { SaveDataV5 } from '@/save/schema';
+import { createEmptySaveV5 } from '@/save/schema';
 import { loadSlot, scheduleSave, flushSave, forceSave, type SaveSlotId } from '@/save/gameSave';
 import { narrativeEngine } from '@/narrative/NarrativeEngine';
 
 interface GameContextValue {
   slot: SaveSlotId;
-  save: SaveDataV4;
+  save: SaveDataV5;
   /** Muta o save via um recipe (immer-like manual: recebe o rascunho,
    * modifica in place) e agenda gravação debounced. */
-  update: (recipe: (draft: SaveDataV4) => void) => void;
+  update: (recipe: (draft: SaveDataV5) => void) => void;
   /** Como `update`, mas grava imediatamente — usar em eventos que não podem
    * se perder (fim de combate, decisão de quest). */
-  updateAndPersist: (recipe: (draft: SaveDataV4) => void) => void;
+  updateAndPersist: (recipe: (draft: SaveDataV5) => void) => void;
   narrativeEngine: typeof narrativeEngine;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
 
 export function GameProvider({ slot, children }: { slot: SaveSlotId; children: ReactNode }) {
-  const [save, setSave] = useState<SaveDataV4>(() => loadSlot(slot));
+  const [save, setSave] = useState<SaveDataV5>(() => loadSlot(slot));
   const saveRef = useRef(save);
   saveRef.current = save;
 
   const update = useCallback(
-    (recipe: (draft: SaveDataV4) => void) => {
+    (recipe: (draft: SaveDataV5) => void) => {
       setSave((prev) => {
         const draft = structuredClone(prev);
         recipe(draft);
@@ -36,7 +36,7 @@ export function GameProvider({ slot, children }: { slot: SaveSlotId; children: R
   );
 
   const updateAndPersist = useCallback(
-    (recipe: (draft: SaveDataV4) => void) => {
+    (recipe: (draft: SaveDataV5) => void) => {
       setSave((prev) => {
         const draft = structuredClone(prev);
         recipe(draft);
@@ -64,6 +64,6 @@ export function useGame(): GameContextValue {
   return ctx;
 }
 
-export function emptySaveForPreview(): SaveDataV4 {
-  return createEmptySaveV4();
+export function emptySaveForPreview(): SaveDataV5 {
+  return createEmptySaveV5();
 }

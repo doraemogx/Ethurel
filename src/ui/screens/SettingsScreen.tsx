@@ -33,22 +33,29 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
           <SettingRow label="Música" checked={settings.musicOn} onChange={(v) => update({ musicOn: v })} />
           <SettingRow label="Efeitos sonoros" checked={settings.sfxOn} onChange={(v) => update({ sfxOn: v })} />
           <SettingRow label="Reduzir movimento" checked={settings.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
-          <div className="slot-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="slot-card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span>Texto</span>
             <div style={{ display: 'flex', gap: 6 }}>
               <MysticButton
                 variant={settings.textSpeed === 'instant' ? 'primary' : 'ghost'}
-                style={{ padding: '6px 12px', fontSize: 12 }}
+                style={{ padding: '6px 10px', fontSize: 12, flex: 1 }}
                 onClick={() => update({ textSpeed: 'instant' })}
               >
                 Instantâneo
               </MysticButton>
               <MysticButton
-                variant={settings.textSpeed === 'animated' ? 'primary' : 'ghost'}
-                style={{ padding: '6px 12px', fontSize: 12 }}
-                onClick={() => update({ textSpeed: 'animated' })}
+                variant={settings.textSpeed === 'fast' ? 'primary' : 'ghost'}
+                style={{ padding: '6px 10px', fontSize: 12, flex: 1 }}
+                onClick={() => update({ textSpeed: 'fast' })}
               >
-                Animado
+                Rápido
+              </MysticButton>
+              <MysticButton
+                variant={settings.textSpeed === 'cinematic' ? 'primary' : 'ghost'}
+                style={{ padding: '6px 10px', fontSize: 12, flex: 1 }}
+                onClick={() => update({ textSpeed: 'cinematic' })}
+              >
+                Cinematográfico
               </MysticButton>
             </div>
           </div>

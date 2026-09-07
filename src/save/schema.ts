@@ -12,7 +12,7 @@
  * preservando apenas metadados (createdAt) — documentado explicitamente em
  * `src/save/migrations/003_to_004.ts`, não é um bug.
  */
-export const CURRENT_SCHEMA_VERSION = 4 as const;
+export const CURRENT_SCHEMA_VERSION = 5 as const;
 
 export interface SaveDataV1 {
   schemaVersion: 1;
@@ -71,6 +71,8 @@ export interface SaveDataV3 {
 
 import type { CharacterModel } from '@/characters/types';
 import type { WorldEvent } from '@/domain/worldEvents';
+import type { Echo } from '@/domain/echoes';
+import type { KnowledgeEntry } from '@/domain/knowledge';
 
 export interface CompanionRelationshipState {
   affinity: number;
@@ -80,15 +82,19 @@ export interface CompanionRelationshipState {
   flags: string[];
 }
 
+/** Velocidade de texto (Fase 2 §17): Instantâneo (sem typewriter),
+ * Rápido, Cinematográfico (mais pausado, pausas em pontuação). */
+export type TextSpeed = 'instant' | 'fast' | 'cinematic';
+
 export interface GameSettings {
   musicOn: boolean;
   sfxOn: boolean;
-  textSpeed: 'instant' | 'animated';
+  textSpeed: TextSpeed;
   reduceMotion: boolean;
 }
 
 export function defaultSettings(): GameSettings {
-  return { musicOn: true, sfxOn: true, textSpeed: 'animated', reduceMotion: false };
+  return { musicOn: true, sfxOn: true, textSpeed: 'fast', reduceMotion: false };
 }
 
 /** Estado narrativo de progresso — onde a cena/capítulo atual está, para o
@@ -117,10 +123,6 @@ export interface SaveDataV4 {
   updatedAt: number;
 }
 
-export type SaveData = SaveDataV1 | SaveDataV2 | SaveDataV3 | SaveDataV4;
-
-export const STARTING_LOCATION_ID = 'varreth';
-
 export function createEmptySaveV4(): SaveDataV4 {
   const now = Date.now();
   return {
@@ -131,6 +133,62 @@ export function createEmptySaveV4(): SaveDataV4 {
     worldEvents: [],
     quests: {},
     relationships: {},
+    discoveredLocations: [STARTING_LOCATION_ID],
+    currentLocationId: STARTING_LOCATION_ID,
+    inventory: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+// ---- V5 — Ecos, Diário de Campanha, confiança de NPC narrativa (Fase 2) ----
+
+/** Estado de descoberta de um local: 3 estados (Fase 2 §26-29, meio-termo
+ * deliberado entre os 2 do Artifact antigo e os 4-5 cogitados e nunca
+ * implementados — ver docs/design/11-LEGACY-RECOVERY.md). */
+export type LocationDiscoveryState = 'desconhecido' | 'conhecido' | 'visitado';
+
+export interface SaveDataV5 {
+  schemaVersion: 5;
+  character: CharacterModel | null;
+  originCharacterId: string | null;
+  narrative: NarrativeProgressState;
+  worldEvents: WorldEvent[];
+  quests: Record<string, QuestProgressState>;
+  relationships: Record<string, CompanionRelationshipState>;
+  /** Confiança por NPC nomeado (0 = neutro) — nunca mostrada como número na
+   * UI, só como rótulo narrativo (ver src/social/relationship.ts). */
+  npcTrust: Record<string, number>;
+  echoes: Echo[];
+  knowledge: KnowledgeEntry[];
+  locationStates: Record<string, LocationDiscoveryState>;
+  discoveredLocations: string[];
+  currentLocationId: string;
+  inventory: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type SaveData = SaveDataV1 | SaveDataV2 | SaveDataV3 | SaveDataV4 | SaveDataV5;
+
+export const STARTING_LOCATION_ID = 'varreth';
+
+export function createEmptySaveV5(): SaveDataV5 {
+  const now = Date.now();
+  return {
+    schemaVersion: 5,
+    character: null,
+    originCharacterId: null,
+    narrative: { currentSceneId: 'intro', flags: [] },
+    worldEvents: [],
+    quests: {},
+    relationships: {},
+    npcTrust: {},
+    echoes: [],
+    knowledge: [],
+    // Estado inicial recuperado do handoff (Parte 14): varreth visitado,
+    // borda-musgos já conhecido de ouvir falar — o resto desconhecido.
+    locationStates: { varreth: 'visitado', 'borda-musgos': 'conhecido', 'estrada-velha': 'desconhecido', fronteira: 'desconhecido' },
     discoveredLocations: [STARTING_LOCATION_ID],
     currentLocationId: STARTING_LOCATION_ID,
     inventory: [],

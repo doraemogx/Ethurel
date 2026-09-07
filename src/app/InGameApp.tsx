@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BottomNav, type InGameTab } from '@/ui/components/BottomNav';
 import { SceneScreen } from '@/ui/screens/SceneScreen';
 import { MapScreen } from '@/ui/screens/MapScreen';
+import { JournalScreen } from '@/ui/screens/JournalScreen';
 import { CharacterScreen } from '@/ui/screens/CharacterScreen';
 import { useGame } from '@/app/GameContext';
 
@@ -28,6 +29,7 @@ export function InGameApp({ onExitToTitle }: InGameAppProps) {
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {tab === 'scene' && <SceneScreen />}
         {tab === 'map' && <MapScreen />}
+        {tab === 'journal' && <JournalScreen />}
         {tab === 'character' && <CharacterScreen />}
       </div>
       <BottomNav active={tab} onChange={setTab} />

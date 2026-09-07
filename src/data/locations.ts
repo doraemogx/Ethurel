@@ -15,6 +15,7 @@ export const LOCATIONS: Location[] = [
     connections: ['borda-musgos', 'estrada-velha'],
     danger: 'nenhum',
     ambientProfile: 'village',
+    coordinates: { x: 150, y: 130 },
   },
   {
     id: 'borda-musgos',
@@ -24,6 +25,7 @@ export const LOCATIONS: Location[] = [
     connections: ['varreth'],
     danger: 'baixo',
     ambientProfile: 'forest',
+    coordinates: { x: 70, y: 75 },
   },
   {
     id: 'estrada-velha',
@@ -33,6 +35,7 @@ export const LOCATIONS: Location[] = [
     connections: ['varreth', 'fronteira'],
     danger: 'moderado',
     ambientProfile: 'road',
+    coordinates: { x: 225, y: 150 },
   },
   {
     id: 'fronteira',
@@ -42,5 +45,6 @@ export const LOCATIONS: Location[] = [
     connections: ['estrada-velha'],
     danger: 'alto',
     ambientProfile: 'fissure',
+    coordinates: { x: 255, y: 45 },
   },
 ];

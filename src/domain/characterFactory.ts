@@ -2,14 +2,23 @@ import type { CharacterModel, Gender, OriginCharacter } from '@/characters/types
 import { CLASSES } from '@/data/classes';
 import { ORIGINS } from '@/data/origins';
 import { computeMaxHp, computeMaxFocus } from '@/domain/dice';
-import { applyIndoleDelta, createInitialIndole, createInitialReputation } from '@/social/indole';
+import { applyIndoleDelta, createInitialIndole, createInitialReputation, type IndoleDelta } from '@/social/indole';
+import { arcaneIdentityForClass } from '@/arcane/identity';
 import type { Attrs } from '@/classes/types';
+import type { CreationOption } from '@/data/characterCreationOptions';
 
 export interface CreateCharacterInput {
   name: string;
   gender: Gender;
   classId: string;
   originId: string;
+  /** Princípio/Desejo/Medo/Limite recuperados do handoff (spec Fase 2 §16) —
+   * opcionais para não obrigar o fluxo de criação; quando presentes, o seed
+   * de Índole de Princípio/Desejo é aplicado. */
+  principle?: CreationOption;
+  desire?: CreationOption;
+  fear?: CreationOption;
+  limit?: CreationOption;
 }
 
 function applyOriginBonus(base: Attrs, bonus: Partial<Attrs>): Attrs {
@@ -28,6 +37,8 @@ export function createCharacterModel(input: CreateCharacterInput): CharacterMode
   const maxHp = computeMaxHp(attrs.vigor);
   const maxFocus = computeMaxFocus(attrs.mente);
 
+  const seedDeltas: IndoleDelta[] = [...(input.principle?.indoleSeed ?? []), ...(input.desire?.indoleSeed ?? [])];
+
   return {
     name: input.name || 'Viajante',
     gender: input.gender,
@@ -40,15 +51,20 @@ export function createCharacterModel(input: CreateCharacterInput): CharacterMode
     arcaneMax: maxFocus,
     tension: 0,
     marca: 0,
-    indole: createInitialIndole(),
+    indole: applyIndoleDelta(createInitialIndole(), seedDeltas),
     reputation: createInitialReputation(),
     gold: 0,
     xp: 0,
     level: 1,
-    inventory: origin.startingItem ? [origin.startingItem] : [],
+    inventory: [...classDef.startingItems, ...(origin.startingItem ? [origin.startingItem] : [])],
     quests: [],
     location: 'varreth',
     visualProfile: { visualTheme: classDef.id },
+    principle: input.principle?.text,
+    desire: input.desire?.text,
+    fear: input.fear?.text,
+    limit: input.limit?.text,
+    arcaneIdentityId: arcaneIdentityForClass(classDef.id).classId,
   };
 }
 
@@ -70,5 +86,6 @@ export function createCharacterFromOrigin(origin: OriginCharacter): CharacterMod
     fear: origin.fear,
     visualProfile: origin.visualProfile,
     originCharacterId: origin.id,
+    arcaneIdentityId: arcaneIdentityForClass(origin.classId).classId,
   };
 }

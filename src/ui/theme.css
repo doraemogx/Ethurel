@@ -129,6 +129,9 @@
   color: var(--accent-soft, var(--accent));
   margin-bottom: 2px;
 }
+.mystic-btn--action .action-origin.action-tag--class { color: var(--accent-soft, var(--accent)); }
+.mystic-btn--action .action-origin.action-tag--attribute { color: #7fa8d9; }
+.mystic-btn--action .action-origin.action-tag--origin { color: var(--gold); }
 
 .portrait {
   width: 52px;
@@ -335,4 +338,153 @@
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
+}
+
+/* ---- Fase 2: sistema visual reativo (§6-7) ---- */
+
+.vignette--hurt {
+  box-shadow: inset 0 0 100px 14px rgba(217, 102, 122, 0.55);
+  animation: hurt-flash 0.6s ease-out;
+}
+.vignette--low-hp {
+  box-shadow: inset 0 0 140px 30px rgba(217, 102, 122, 0.32);
+  animation: lowhp-pulse 2.4s ease-in-out infinite;
+}
+.vignette--poison {
+  box-shadow: inset 0 0 120px 24px rgba(143, 209, 152, 0.28);
+  animation: poison-pulse 2.8s ease-in-out infinite;
+}
+@keyframes hurt-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+@keyframes lowhp-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.95; }
+}
+@keyframes poison-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+}
+
+/* ---- Sigilos Arcane (§12) ---- */
+.sigil--saturacao circle:first-child { animation: sigil-pulse 2s ease-in-out infinite; }
+.sigil--ruptura circle:first-child { animation: sigil-pulse 0.8s ease-in-out infinite; }
+@keyframes sigil-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* ---- Tags de ação: classe/atributo/origem (§41, recuperado do handoff) ---- */
+.action-tag {
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-right: 5px;
+  opacity: 0.9;
+}
+.action-tag--class { color: var(--accent-soft, var(--accent)); }
+.action-tag--attribute { color: #7fa8d9; }
+.action-tag--origin { color: var(--gold); }
+
+/* ---- Encenação narrativa: layout muda por tipo de fala (§18-19) ---- */
+.stage-box {
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(4px);
+}
+.stage-box--narrator { border: 1px solid rgba(216, 211, 230, 0.16); background: rgba(11, 10, 22, 0.55); font-style: italic; }
+.stage-box--npc { border: 1px solid rgba(216, 211, 230, 0.24); background: rgba(18, 15, 36, 0.72); display: flex; gap: 12px; }
+.stage-box--attribute { border: 1px solid rgba(127, 168, 217, 0.4); background: rgba(16, 24, 38, 0.6); }
+.stage-box--arcane { border: 1px solid rgba(159, 127, 224, 0.45); background: rgba(28, 20, 48, 0.6); }
+
+/* ---- Combate: números flutuantes (§45, recuperado do handoff Parte 9) ---- */
+.combat-portrait-slot { position: relative; }
+.damage-number {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: Georgia, serif;
+  font-weight: bold;
+  font-size: 20px;
+  pointer-events: none;
+  animation: float-up 0.9s ease-out forwards;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+.damage-number--crit { font-size: 28px; }
+.damage-number--heal { color: #9fd1a8; }
+.damage-number--hit { color: var(--danger); }
+@keyframes float-up {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-38px) scale(1.08); opacity: 0; }
+}
+.hit-shake { animation: hit-shake 0.32s ease-in-out; }
+@keyframes hit-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.crit-flash { animation: crit-flash 0.5s ease-out; }
+@keyframes crit-flash {
+  0% { filter: brightness(1.9); }
+  100% { filter: brightness(1); }
+}
+
+/* ---- "Fazer outra coisa..." — sheet, não campo permanente (§40) ---- */
+.composer-sheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: rgba(11, 10, 22, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(216, 211, 230, 0.2);
+  border-radius: 18px 18px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  z-index: 5;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Mapa místico real (§27-29) ---- */
+.map-svg-wrap { flex: 1; min-height: 0; }
+.map-node-label {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  fill: var(--text-dim);
+}
+.map-node--current circle.map-node-core { animation: node-pulse 2.4s ease-in-out infinite; }
+@keyframes node-pulse {
+  0%, 100% { r: 6; opacity: 0.9; }
+  50% { r: 9; opacity: 0.5; }
+}
+.map-node--fog { opacity: 0.35; }
+
+/* ---- Carrossel de classes (§10) ---- */
+.class-carousel-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.class-carousel-dots { display: flex; gap: 5px; justify-content: center; margin-top: 10px; }
+.class-carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(216, 211, 230, 0.25);
+}
+.class-carousel-dot--active { background: var(--accent-soft, var(--accent)); }
+
+/* ---- Ecos: revelação discreta, nunca "achievement" (§24) ---- */
+.echo-reveal {
+  border: 1px solid rgba(159, 127, 224, 0.4);
+  border-radius: 14px;
+  padding: 16px;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(159, 127, 224, 0.14), rgba(11, 10, 22, 0.9));
+  text-align: center;
+  animation: echo-fade-in 1.1s ease-out;
+}
+@keyframes echo-fade-in {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
 }

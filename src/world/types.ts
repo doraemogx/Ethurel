@@ -17,6 +17,9 @@ export interface Location {
   connections: string[];
   danger: 'nenhum' | 'baixo' | 'moderado' | 'alto';
   ambientProfile: AmbientProfile;
+  /** Posição no mapa místico (viewBox 300×190) — coordenadas recuperadas do
+   * `MAP_NODES` do Artifact antigo, ver docs/design/11-LEGACY-RECOVERY.md. */
+  coordinates: { x: number; y: number };
 }
 
 export interface WorldMapData {

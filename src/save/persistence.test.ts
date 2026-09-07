@@ -12,7 +12,7 @@ describe('Persistência: quest/reputação/índole/worldEvents sobrevivem ao rel
 
   it('progresso de quest, Índole, Reputação e WorldEventLog persistem depois de um reload simulado', () => {
     const save = loadSlot('slot1');
-    save.character = createCharacterModel({ name: 'Aldric', gender: 'homem', classId: 'portador-de-cinza', originId: 'cinzas-longas' });
+    save.character = createCharacterModel({ name: 'Aldric', gender: 'masculino', classId: 'portador-de-cinza', originId: 'cinzas-longas' });
     setQuestState(save, 'raiz-sussurrou', 'objective_complete');
 
     const social = resolveWorldEvent(

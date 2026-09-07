@@ -1,7 +1,13 @@
 import type { Attrs } from '@/classes/types';
 import type { IndoleState, ReputationState } from '@/social/indole';
 
-export type Gender = 'homem' | 'mulher';
+/**
+ * Identidade selecionável na criação (spec Fase 2 §9) — apresentação do
+ * personagem, não uma escolha mecânica: nenhum atributo/regra depende deste
+ * valor. Substitui "Homem/Mulher" da primeira reconstrução por pedido
+ * explícito do usuário nesta fase.
+ */
+export type Gender = 'masculino' | 'feminino' | 'outro';
 
 export interface OriginDefinition {
   id: string;
@@ -59,6 +65,10 @@ export interface CharacterModel {
   fear?: string;
   limit?: string;
 
+  /** Assinatura visual Arcane do personagem — derivada da classe (spec Fase 2
+   * §12), nunca altera regra/mecânica. Ver src/arcane/identity.ts. */
+  arcaneIdentityId: string;
+
   /** Presente só quando o jogo começou por um Personagem de Origem. */
   originCharacterId?: string;
 }
@@ -74,12 +84,18 @@ export interface OriginCharacter {
   gender: Gender;
   classId: string;
   originId: string;
+  approxAge: string;
+  /** Frase que resume a voz do personagem — mostrada na seleção (spec Fase 2 §13). */
+  catchphrase: string;
   shortHook: string;
   background: string;
   personalGoal: string;
   fear: string;
+  /** Algo que o PRÓPRIO personagem sabe — mostrado ao jogador (diferente do segredo). */
+  knownFact: string;
   /** Não revelado ao jogador na criação — usado pela narrativa mais tarde. */
   secret: string;
+  traits: string[];
   startingRelationships: { npcId: string; affinity: number; note: string }[];
   uniqueTags: string[];
   personalQuestId?: string;
