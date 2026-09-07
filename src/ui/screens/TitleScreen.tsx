@@ -2,6 +2,7 @@ import { SceneBackdrop } from '@/ui/components/SceneBackdrop';
 import { MysticButton } from '@/ui/components/MysticButton';
 import { sceneArtFor } from '@/ui/visual/sceneArt';
 import { hasAnyContinuableSave } from '@/save/gameSave';
+import { IMG } from '@/ui/assetPath';
 
 export interface TitleScreenProps {
   onContinue: () => void;
@@ -22,7 +23,7 @@ export function TitleScreen({ onContinue, onNewGame, onCampaigns, onSettings }: 
 
   return (
     <div className="screen">
-      <SceneBackdrop art={sceneArtFor('forest')} backgroundImage="/assets/img/backgrounds/borda-musgos-night.webp" />
+      <SceneBackdrop art={sceneArtFor('forest')} backgroundImage={`${IMG}/backgrounds/borda-musgos-night.webp`} />
       <div className="title-stage" />
       <div className="screen__content stack--center">
         <div className="title-block">

@@ -4,6 +4,7 @@ import { MysticButton } from '@/ui/components/MysticButton';
 import { ClassDetailCard } from '@/ui/components/ClassDetailCard';
 import { ArcaneSigil } from '@/ui/components/ArcaneSigil';
 import { sceneArtFor } from '@/ui/visual/sceneArt';
+import { IMG } from '@/ui/assetPath';
 import { getClassTheme } from '@/ui/visual/classThemes';
 import { arcaneIdentityForClass } from '@/arcane/identity';
 import { CLASSES } from '@/data/classes';
@@ -157,7 +158,7 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
       <SceneBackdrop
         art={{ ...art, particleColor: theme.accent, particleMotif: classId ? theme.particleMotif : art.particleMotif }}
         arcaneOverlay={{ opacity: 0.08, hueShift: 0 }}
-        backgroundImage="/assets/img/backgrounds/varreth-market.webp"
+        backgroundImage={`${IMG}/backgrounds/varreth-market.webp`}
       />
       <div className="screen__content">
         <div className="topbar" style={{ marginBottom: 4 }}>

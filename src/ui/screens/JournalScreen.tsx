@@ -4,6 +4,7 @@ import { sceneArtFor } from '@/ui/visual/sceneArt';
 import { useGame } from '@/app/GameContext';
 import { QUEST_ID, QUEST_TITLE, NPC_NAME } from '@/content/firstChapterQuest';
 import type { KnowledgeCategory, KnowledgeEntry } from '@/domain/knowledge';
+import { IMG } from '@/ui/assetPath';
 
 const CATEGORY_LABEL: Record<KnowledgeCategory, string> = {
   missoes: 'Missões',
@@ -113,7 +114,7 @@ export function JournalScreen() {
             <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>Nada registrado aqui ainda.</p>
           ) : (
             entries.map((e) => (
-              <div key={e.id} className="journal-entry">
+              <div key={e.id} className="journal-entry" style={{ backgroundImage: `url('${IMG}/parchment/scroll-folded-b.webp')` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <p className="journal-entry__title">{e.title}</p>
                   {e.state !== 'confirmed' && <span className="status-chip">{STATE_LABEL[e.state]}</span>}

@@ -3,6 +3,7 @@ import { LOCATIONS } from '@/data/locations';
 import { useGame } from '@/app/GameContext';
 import type { Location } from '@/world/types';
 import type { LocationDiscoveryState } from '@/save/schema';
+import { IMG } from '@/ui/assetPath';
 
 const DANGER_LABEL: Record<Location['danger'], string> = {
   nenhum: 'Seguro',
@@ -76,7 +77,7 @@ export function MapScreen() {
         <h2 className="map-title">Borda dos Musgos</h2>
 
         <div className="map-parchment-wrap">
-          <img className="map-parchment-frame" src="/assets/img/map/parchment-frame.webp" alt="" />
+          <img className="map-parchment-frame" src={`${IMG}/map/parchment-frame.webp`} alt="" />
           <svg viewBox="0 0 300 190" width="100%" height="100%" className="map-svg" preserveAspectRatio="xMidYMid meet">
             <defs>
               <radialGradient id="map-node-glow" cx="50%" cy="50%" r="50%">

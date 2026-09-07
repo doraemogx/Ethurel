@@ -5,6 +5,7 @@ import { MysticButton } from '@/ui/components/MysticButton';
 import { StatusBar } from '@/ui/components/StatusBar';
 import { ArcaneSigil } from '@/ui/components/ArcaneSigil';
 import { sceneArtFor, arcaneOverlayFor } from '@/ui/visual/sceneArt';
+import { IMG } from '@/ui/assetPath';
 import { getClassTheme } from '@/ui/visual/classThemes';
 import { arcaneIdentityForClass } from '@/arcane/identity';
 import { arcaneZone } from '@/arcane/zone';
@@ -129,7 +130,7 @@ export function CombatScreen({ character, classDef, enemy, onFinished }: CombatS
           de distorção Arcana local — reaproveita o tratamento "lua de sangue"
           do mesmo fundo de Borda dos Musgos (spec §1/§12: mesma arte, tratamento
           diferente, em vez de exigir um asset exclusivo para o encontro). */}
-      <SceneBackdrop art={{ ...art, particleColor: theme.accent, particleMotif: theme.particleMotif }} arcaneOverlay={overlay} backgroundImage="/assets/img/backgrounds/borda-musgos-bloodmoon.webp" />
+      <SceneBackdrop art={{ ...art, particleColor: theme.accent, particleMotif: theme.particleMotif }} arcaneOverlay={overlay} backgroundImage={`${IMG}/backgrounds/borda-musgos-bloodmoon.webp`} />
       <div className="screen__content">
         <CombatSide name={enemy.name} flash={flash?.targetId === state.enemy.id ? flash : null}>
           <ArcaneSigil identity={{ classId: enemy.id, label: enemy.family, motif: enemy.arcaneAffinity === 'ruptura' ? 'sigil' : 'trail' }} zone={enemy.arcaneAffinity && enemy.arcaneAffinity !== 'nenhuma' ? enemy.arcaneAffinity : 'controle'} size={34} />

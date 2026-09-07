@@ -6,8 +6,7 @@
  * licença de cada um em `docs/assets/ASSET-CATALOG.md`.
  */
 import type { CharacterVisualProfile } from '@/characters/types';
-
-const IMG = '/assets/img';
+import { IMG } from '@/ui/assetPath';
 
 export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
   // NPCs

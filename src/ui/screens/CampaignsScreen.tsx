@@ -1,6 +1,7 @@
 import { SceneBackdrop } from '@/ui/components/SceneBackdrop';
 import { MysticButton } from '@/ui/components/MysticButton';
 import { sceneArtFor } from '@/ui/visual/sceneArt';
+import { IMG } from '@/ui/assetPath';
 
 export interface CampaignsScreenProps {
   onBack: () => void;
@@ -17,7 +18,7 @@ export interface CampaignsScreenProps {
 export function CampaignsScreen({ onBack, onPlay }: CampaignsScreenProps) {
   return (
     <div className="screen">
-      <SceneBackdrop art={sceneArtFor('village')} backgroundImage="/assets/img/backgrounds/varreth-tavern.webp" />
+      <SceneBackdrop art={sceneArtFor('village')} backgroundImage={`${IMG}/backgrounds/varreth-tavern.webp`} />
       <div className="screen__content">
         <h2 className="map-title" style={{ marginBottom: 16 }}>Campanhas</h2>
         <div className="creation-detail-panel" style={{ marginBottom: 10 }}>

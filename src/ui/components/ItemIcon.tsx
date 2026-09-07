@@ -1,14 +1,15 @@
 import type { ItemIcon as ItemIconMotif } from '@/items/types';
+import { IMG } from '@/ui/assetPath';
 
 const ICON_SRC: Record<ItemIconMotif, string> = {
-  ash: '/assets/img/icons/ash.webp',
-  thread: '/assets/img/icons/thread.webp',
-  trail: '/assets/img/icons/trail.webp',
-  shadow: '/assets/img/icons/shadow.webp',
-  stone: '/assets/img/icons/stone.webp',
-  moss: '/assets/img/icons/moss.webp',
-  sigil: '/assets/img/icons/sigil.webp',
-  bone: '/assets/img/icons/bone.webp',
+  ash: `${IMG}/icons/ash.webp`,
+  thread: `${IMG}/icons/thread.webp`,
+  trail: `${IMG}/icons/trail.webp`,
+  shadow: `${IMG}/icons/shadow.webp`,
+  stone: `${IMG}/icons/stone.webp`,
+  moss: `${IMG}/icons/moss.webp`,
+  sigil: `${IMG}/icons/sigil.webp`,
+  bone: `${IMG}/icons/bone.webp`,
 };
 
 /** Ícone de item (Phase 3 §21) — recorte real do atlas do Pack #10 (OpenGameArt

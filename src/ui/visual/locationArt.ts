@@ -9,7 +9,7 @@
  * a UI cai para o gradiente atmosférico de sempre (`sceneArtFor`), nunca
  * quebra.
  */
-const IMG = '/assets/img';
+import { IMG } from '@/ui/assetPath';
 
 export interface LocationArtEntry {
   /** Fundo padrão (Controle). */

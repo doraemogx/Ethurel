@@ -254,7 +254,11 @@
   border-radius: 10px;
   padding: 12px 14px;
   overflow: hidden;
-  background-image: url('/assets/img/parchment/scroll-folded-b.webp');
+  /* background-image definido inline em JournalScreen.tsx via assetUrl() —
+     um caminho absoluto fixo aqui quebraria sob o base path do GitHub
+     Pages (CSS url() resolve relativo ao PRÓPRIO arquivo CSS, não ao
+     documento, então nem import.meta.env.BASE_URL ajudaria aqui dentro;
+     ver src/ui/assetPath.ts). */
   background-size: 200% auto;
   background-position: center 30%;
   background-color: #cbb083;
