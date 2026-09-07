@@ -67,7 +67,7 @@ export function composeExperience(ctx: ExperienceContext): ExperienceComposition
   return {
     art,
     arcaneOverlay: arcaneOverlayFor(ctx.arcaneZone),
-    accent: theme?.accent ?? '#9f7fe0',
+    accent: theme?.accent ?? '#c9973f',
     vignette,
     reduceMotion: ctx.reduceMotion ?? false,
     backgroundImage,

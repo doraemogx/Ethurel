@@ -16,7 +16,7 @@ const ICON_SRC: Record<ItemIconMotif, string> = {
  * RPG Icons Set, ver ASSET-CATALOG.md), um por motivo de item (os mesmos 8
  * motivos já usados por classe/partícula — reaproveita o vocabulário visual
  * existente em vez de inventar 21 ícones únicos para 21 itens). */
-export function ItemIcon({ motif, size = 28, color = '#c9b6f0' }: { motif: ItemIconMotif; size?: number; color?: string }) {
+export function ItemIcon({ motif, size = 28, color = '#e3bd7d' }: { motif: ItemIconMotif; size?: number; color?: string }) {
   return (
     <div
       className="item-icon-frame"

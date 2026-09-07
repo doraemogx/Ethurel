@@ -81,8 +81,8 @@ export function MapScreen() {
           <svg viewBox="0 0 300 190" width="100%" height="100%" className="map-svg" preserveAspectRatio="xMidYMid meet">
             <defs>
               <radialGradient id="map-node-glow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#9f7fe0" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="#9f7fe0" stopOpacity="0" />
+                <stop offset="0%" stopColor="#c9973f" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#c9973f" stopOpacity="0" />
               </radialGradient>
               <filter id="map-label-shadow" x="-40%" y="-40%" width="180%" height="180%">
                 <feDropShadow dx="0" dy="0.6" stdDeviation="0.5" floodColor="#f4e8c9" floodOpacity="0.9" />
@@ -139,7 +139,7 @@ export function MapScreen() {
                     cx={cx}
                     cy={cy}
                     r={selectedId === loc.id ? 4.5 : 3.5}
-                    fill={isCurrent ? '#9f7fe0' : '#7a5a3a'}
+                    fill={isCurrent ? '#c9973f' : '#7a5a3a'}
                     stroke="#2c2013"
                     strokeWidth={0.8}
                   />

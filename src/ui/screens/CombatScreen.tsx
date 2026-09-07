@@ -210,7 +210,7 @@ function CombatSide({ name, flash, children }: { name: string; flash: Flash | nu
         borderRadius: 10,
         position: 'relative',
         transition: 'background-color 0.15s ease',
-        background: flash?.kind === 'damage' ? 'rgba(217,102,122,0.25)' : flash?.kind === 'heal' ? 'rgba(143,209,152,0.2)' : 'transparent',
+        background: flash?.kind === 'damage' ? 'rgba(184,73,63,0.25)' : flash?.kind === 'heal' ? 'rgba(143,209,152,0.2)' : 'transparent',
       }}
     >
       <div style={{ flex: 1, position: 'relative' }}>

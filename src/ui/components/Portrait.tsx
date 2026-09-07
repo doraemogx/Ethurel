@@ -13,7 +13,7 @@ export interface PortraitProps {
  * §65/§22). Quando `imageUrl` existir (arte futura), é usado sem mudar o
  * layout.
  */
-export function Portrait({ name, imageUrl, size = 52, accent = '#9f7fe0', active }: PortraitProps) {
+export function Portrait({ name, imageUrl, size = 52, accent = '#c9973f', active }: PortraitProps) {
   return (
     <div
       className="portrait"

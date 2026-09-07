@@ -41,9 +41,14 @@ export function arcaneIdentityForClass(classId: string): ArcaneIdentity {
  * sigilo/motivo muda). Paleta mística do projeto, não o
  * verde/âmbar/vermelho literal do Artifact antigo (verde é identidade
  * descartada, spec §12/13 desta reconstrução).
+ *
+ * Fase 3 (Vertical Slice Visual): Controle usa aço envelhecido — calmo,
+ * metálico, coerente com "metal envelhecido" na direção visual — em vez do
+ * roxo/violeta anterior. Progressão Controle→Saturação→Ruptura lê como
+ * aço frio → ouro quente → vermelho de perigo.
  */
 export function arcaneResonance(zone: ArcaneZone): string {
-  if (zone === 'ruptura') return '#d9667a';
+  if (zone === 'ruptura') return '#b8493f';
   if (zone === 'saturacao') return '#d8b872';
-  return '#9f7fe0';
+  return '#8a97a3';
 }

@@ -173,7 +173,7 @@ export function SceneScreen() {
   if (echoReveal) {
     return (
       <div className="screen">
-        <SceneBackdrop art={{ gradient: 'radial-gradient(120% 90% at 50% 20%, #241a3d 0%, #120f24 55%, #0b0a16 100%)', particleColor: '#c9b6f0', particleMotif: 'sigil' }} />
+        <SceneBackdrop art={{ gradient: 'radial-gradient(120% 90% at 50% 20%, #2e2721 0%, #1c1712 55%, #14100c 100%)', particleColor: '#e3bd7d', particleMotif: 'sigil' }} />
         <div className="screen__content stack--center">
           <div className="echo-reveal">
             <p style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent-soft)', margin: '0 0 8px' }}>Um Eco permanece</p>

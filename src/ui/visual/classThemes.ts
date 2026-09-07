@@ -73,9 +73,9 @@ export const CLASS_THEMES: Record<string, ClassTheme> = {
 };
 
 export const DEFAULT_THEME: ClassTheme = {
-  accent: '#9f7fe0',
-  accentSoft: '#c9b6f0',
-  glow: 'rgba(159,127,224,0.35)',
+  accent: '#c9973f',
+  accentSoft: '#e3bd7d',
+  glow: 'rgba(201,151,63,0.35)',
   particleMotif: 'sigil',
   motifLabel: 'mistério',
 };

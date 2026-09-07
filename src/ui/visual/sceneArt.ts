@@ -35,8 +35,8 @@ const AMBIENT_STYLES: Record<AmbientProfile, SceneArtStyle> = {
     particleMotif: 'stone',
   },
   fissure: {
-    gradient: 'radial-gradient(120% 90% at 50% 0%, #2a1e3d 0%, #1c1430 45%, #0b0a16 100%)',
-    particleColor: '#9f7fe0',
+    gradient: 'radial-gradient(120% 90% at 50% 0%, #332419 0%, #211810 45%, #14100c 100%)',
+    particleColor: '#c9973f',
     particleMotif: 'sigil',
   },
   ashlands: {

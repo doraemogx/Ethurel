@@ -35,7 +35,7 @@ export function SceneBackdrop({ art, reduceMotion, arcaneOverlay, backgroundImag
           style={{
             position: 'absolute',
             inset: 0,
-            background: `radial-gradient(120% 100% at 50% 100%, rgba(159,127,224,${arcaneOverlay.opacity}), transparent 70%)`,
+            background: `radial-gradient(120% 100% at 50% 100%, rgba(201,151,63,${arcaneOverlay.opacity}), transparent 70%)`,
             filter: `hue-rotate(${arcaneOverlay.hueShift}deg)`,
             mixBlendMode: 'screen',
           }}
