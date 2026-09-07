@@ -1,116 +1,77 @@
 import Phaser from 'phaser';
 import type { CharacterAnimationSet } from '@/player/animation';
+import type { Gender } from '@/player/types';
 
 /**
- * Sprite do jogador — pixel art desenhada por código (ver
- * docs/design/05-DIRECAO-DE-ARTE.md §1: nenhum asset externo pôde ser obtido
- * nesta sessão por bloqueio de rede do ambiente; isto é placeholder autoral,
- * não um pack de terceiros). Ponto único de geração — trocar por
- * `scene.load.spritesheet(...)` aqui dentro é a única mudança necessária
- * quando houver um arquivo de asset real (ex.: Kenney Tiny Dungeon/Tiny Town,
- * CC0, se você puder enviar os arquivos).
+ * Sprite real do jogador/NPCs — Mighty Pack (RPG Maker VX Ace resource),
+ * licença confirmada (ver CREDITS.md): "Vx ace/Characters/Actors_1.png".
+ * Substitui o placeholder procedural do ciclo anterior.
  *
- * 8 frames num único atlas: idle (0-1), walk-down (2-3), walk-up (4-5),
- * walk-side (6-7, usado com flip horizontal para o lado oposto).
+ * Formato padrão RPG Maker VX Ace charset: folha de 384×336px, 8 personagens
+ * em grade 4×2, cada um ocupando um bloco de 3 colunas (passo-esquerdo,
+ * parado, passo-direito) × 4 linhas (baixo, esquerda, direita, cima), frame
+ * de 32×42px. Índices confirmados por inspeção visual direta do arquivo
+ * recebido antes de uso (ver CREDITS.md).
  */
-export const PLAYER_TEXTURE_KEY = 'player-varreth';
-export const PLAYER_FRAME_WIDTH = 18;
-export const PLAYER_FRAME_HEIGHT = 28;
+export const PLAYER_TEXTURE_KEY = 'mighty-actors1';
+export const PLAYER_TEXTURE_URL = 'assets/mighty/characters/actors1.png';
 
-export const PLAYER_FRAMES = {
-  idleA: 0,
-  idleB: 1,
-  walkDownA: 2,
-  walkDownB: 3,
-  walkUpA: 4,
-  walkUpB: 5,
-  walkSideA: 6,
-  walkSideB: 7,
-} as const;
+const FRAME_WIDTH = 32;
+const FRAME_HEIGHT = 42;
+const SHEET_COLS = 12; // 384 / 32
 
-type Facing = 'down' | 'up' | 'side';
+export const PLAYER_FRAME_WIDTH = FRAME_WIDTH;
+export const PLAYER_FRAME_HEIGHT = FRAME_HEIGHT;
 
-function drawCharacterFrame(
-  g: Phaser.GameObjects.Graphics,
-  frameIndex: number,
-  facing: Facing,
-  legPhase: 0 | 1,
-  bob: 0 | 1
-): void {
-  const ox = frameIndex * PLAYER_FRAME_WIDTH;
-  const h = PLAYER_FRAME_HEIGHT;
-
-  // sombra de contato
-  g.fillStyle(0x0a0d09, 0.35);
-  g.fillEllipse(ox + PLAYER_FRAME_WIDTH / 2, h - 2, 12, 4);
-
-  // pernas (alternam para o ciclo de passo)
-  const legLift = legPhase === 0 ? 0 : 2;
-  g.fillStyle(0x2e2a22, 1);
-  g.fillRect(ox + 6, h - 9 + legLift, 3, 7 - legLift);
-  g.fillRect(ox + 10, h - 9 + (legPhase === 0 ? 2 : 0), 3, 7 - (legPhase === 0 ? 2 : 0));
-
-  // manto/corpo (tom terroso âmbar da paleta — não cinza neutro)
-  g.fillStyle(0x6b5230, 1);
-  g.fillRect(ox + 4, h - 18 + bob, 11, 11);
-  g.fillStyle(0x5a4326, 1); // dobra central do manto
-  g.fillRect(ox + 9, h - 18 + bob, 1, 11);
-  g.fillStyle(0x2e2a22, 1); // cinto
-  g.fillRect(ox + 4, h - 10 + bob, 11, 1);
-
-  // capuz (mais escuro que o manto)
-  g.fillStyle(0x50432f, 1);
-  g.fillRect(ox + 5, h - 25 + bob, 9, 7);
-  g.fillStyle(0x3d3320, 1);
-  g.fillRect(ox + 5, h - 25 + bob, 9, 2);
-
-  if (facing === 'down') {
-    g.fillStyle(0xd8c39a, 1);
-    g.fillRect(ox + 7, h - 21 + bob, 5, 3);
-  } else if (facing === 'side') {
-    g.fillStyle(0xd8c39a, 1);
-    g.fillRect(ox + 11, h - 20 + bob, 2, 2);
-  }
-  // facing 'up': só o capuz de costas, sem rosto — de propósito.
-
-  // sigilo/destaque — âncora visual para futuramente refletir
-  // CharacterAppearance.sigilAccent (src/player/types.ts), não implementado agora.
-  g.fillStyle(0x8fae86, 1);
-  g.fillRect(ox + 9, h - 15 + bob, 1, 1);
-}
-
-/**
- * Só os estados que realmente existem nesta build (ver src/player/animation.ts).
- * attack/cast/hurt/death ficam de fora do objeto — ausentes, não vazios —
- * para que qualquer código futuro que os consuma precise checar presença.
- */
-export const PLAYER_ANIMATIONS: CharacterAnimationSet = {
-  idle: { frames: [PLAYER_FRAMES.idleA, PLAYER_FRAMES.idleB], frameDurationMs: 500, loop: true },
-  walkDown: { frames: [PLAYER_FRAMES.walkDownA, PLAYER_FRAMES.walkDownB], frameDurationMs: 160, loop: true },
-  walkUp: { frames: [PLAYER_FRAMES.walkUpA, PLAYER_FRAMES.walkUpB], frameDurationMs: 160, loop: true },
-  walkSide: { frames: [PLAYER_FRAMES.walkSideA, PLAYER_FRAMES.walkSideB], frameDurationMs: 160, loop: true },
+/** Posição (em blocos de 3 colunas / 4 linhas) de cada personagem escolhido
+ * nesta folha — ver captura em CREDITS.md. Bloco C (colunas 6-8, linhas 0-3):
+ * soldado de elmo azul. Bloco E (colunas 0-2, linhas 4-7): mulher de cabelo
+ * castanho e vestido roxo. */
+const GENDER_BLOCK: Record<Gender, { colStart: number; rowStart: number }> = {
+  homem: { colStart: 6, rowStart: 0 },
+  mulher: { colStart: 0, rowStart: 4 },
 };
 
+/** Ordem de linha padrão VX Ace dentro de cada bloco: baixo, esquerda, direita, cima. */
+const DIRECTION_ROW_OFFSET = { down: 0, left: 1, right: 2, up: 3 } as const;
+const WALK_COLS = [0, 1, 2] as const; // passo-esquerdo, parado, passo-direito
+const STAND_COL = 1;
+
+function frameIndex(colStart: number, rowStart: number, colOffset: number, rowOffset: number): number {
+  const col = colStart + colOffset;
+  const row = rowStart + rowOffset;
+  return row * SHEET_COLS + col;
+}
+
 export function ensurePlayerTexture(scene: Phaser.Scene): void {
-  if (scene.textures.exists(PLAYER_TEXTURE_KEY)) return;
-
-  const g = scene.make.graphics({ x: 0, y: 0 }, false);
-
-  drawCharacterFrame(g, PLAYER_FRAMES.idleA, 'down', 0, 0);
-  drawCharacterFrame(g, PLAYER_FRAMES.idleB, 'down', 0, 1);
-  drawCharacterFrame(g, PLAYER_FRAMES.walkDownA, 'down', 0, 0);
-  drawCharacterFrame(g, PLAYER_FRAMES.walkDownB, 'down', 1, 0);
-  drawCharacterFrame(g, PLAYER_FRAMES.walkUpA, 'up', 0, 0);
-  drawCharacterFrame(g, PLAYER_FRAMES.walkUpB, 'up', 1, 0);
-  drawCharacterFrame(g, PLAYER_FRAMES.walkSideA, 'side', 0, 0);
-  drawCharacterFrame(g, PLAYER_FRAMES.walkSideB, 'side', 1, 0);
-
-  const frameCount = Object.keys(PLAYER_FRAMES).length;
-  g.generateTexture(PLAYER_TEXTURE_KEY, PLAYER_FRAME_WIDTH * frameCount, PLAYER_FRAME_HEIGHT);
-  g.destroy();
-
-  const tex = scene.textures.get(PLAYER_TEXTURE_KEY);
-  for (let i = 0; i < frameCount; i++) {
-    tex.add(i, 0, i * PLAYER_FRAME_WIDTH, 0, PLAYER_FRAME_WIDTH, PLAYER_FRAME_HEIGHT);
+  // Textura vem de `preload()` (scene.load.spritesheet) — nada a gerar aqui;
+  // função mantida por compatibilidade de API com quem já a chamava.
+  if (!scene.textures.exists(PLAYER_TEXTURE_KEY)) {
+    console.warn(`[player/sprite] Textura "${PLAYER_TEXTURE_KEY}" não carregada — verifique preload().`);
   }
+}
+
+export function buildAnimationSetForGender(gender: Gender): CharacterAnimationSet {
+  const { colStart, rowStart } = GENDER_BLOCK[gender];
+  const walkFrames = (dir: keyof typeof DIRECTION_ROW_OFFSET) =>
+    WALK_COLS.map((c) => frameIndex(colStart, rowStart, c, DIRECTION_ROW_OFFSET[dir]));
+
+  return {
+    idle: {
+      frames: [frameIndex(colStart, rowStart, STAND_COL, DIRECTION_ROW_OFFSET.down)],
+      frameDurationMs: 600,
+      loop: true,
+    },
+    walkDown: { frames: walkFrames('down'), frameDurationMs: 150, loop: true },
+    walkUp: { frames: walkFrames('up'), frameDurationMs: 150, loop: true },
+    walkLeft: { frames: walkFrames('left'), frameDurationMs: 150, loop: true },
+    walkRight: { frames: walkFrames('right'), frameDurationMs: 150, loop: true },
+  };
+}
+
+/** Frame estático (parado, de frente) — usado em previews de criação de
+ * personagem sem precisar montar um sprite animado completo. */
+export function standingFrameForGender(gender: Gender): number {
+  const { colStart, rowStart } = GENDER_BLOCK[gender];
+  return frameIndex(colStart, rowStart, STAND_COL, DIRECTION_ROW_OFFSET.down);
 }

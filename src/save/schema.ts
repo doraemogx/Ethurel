@@ -14,7 +14,7 @@
  * NÃO faz parte deste schema — só entra quando `CharacterModel` completo for
  * integrado ao save (junto com stats/classe/origem, na Fase 4).
  */
-export const CURRENT_SCHEMA_VERSION = 2 as const;
+export const CURRENT_SCHEMA_VERSION = 3 as const;
 
 export interface SaveDataV1 {
   schemaVersion: 1;
@@ -39,7 +39,73 @@ export interface SaveDataV2 {
   updatedAt: number;
 }
 
-export type SaveData = SaveDataV1 | SaveDataV2;
+/**
+ * Fase "vertical slice jogável" (V3): primeiro save que carrega personagem
+ * real (criação), progresso de quest, Índole/Reputação/Arcane e preferência
+ * de áudio — o mínimo que o fluxo completo pedido precisa persistir.
+ *
+ * `QuestProgressState` é deliberadamente mais simples que `QuestStatus`
+ * (src/quests/types.ts, que descreve o CATÁLOGO de quests) — aqui é só o
+ * progresso determinístico do jogador nesta quest específica, nas 4 fases
+ * pedidas pela especificação desta entrega.
+ */
+export type QuestProgressState = 'not_started' | 'active' | 'objective_complete' | 'completed';
+
+export interface CharacterSaveState {
+  name: string;
+  gender: 'homem' | 'mulher';
+  appearance: {
+    skinTone: string;
+    hairStyle: string;
+    hairColor: string;
+    sigilAccent: string;
+  };
+  classId: string;
+  originId: string;
+  hp: number;
+  maxHp: number;
+  arcaneFocus: number;
+  arcaneMax: number;
+  tension: number;
+  marca: number;
+  xp: number;
+  level: number;
+}
+
+export interface SaveDataV3 {
+  schemaVersion: 3;
+  sessionCount: number;
+  player: PlayerSaveState;
+  character: CharacterSaveState | null;
+  indole: Record<string, number>;
+  reputation: Record<string, number>;
+  quests: Record<string, QuestProgressState>;
+  /** Consequência local persistente da decisão da quest piloto — ver
+   * docs/design §16 do prompt de implementação. Vazio até a decisão ocorrer. */
+  worldFlags: Record<string, boolean>;
+  audio: { soundOn: boolean };
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type SaveData = SaveDataV1 | SaveDataV2 | SaveDataV3;
+
+export function createEmptySaveV3(): SaveDataV3 {
+  const now = Date.now();
+  return {
+    schemaVersion: 3,
+    sessionCount: 0,
+    player: { ...DEFAULT_SPAWN },
+    character: null,
+    indole: {},
+    reputation: {},
+    quests: {},
+    worldFlags: {},
+    audio: { soundOn: true },
+    createdAt: now,
+    updatedAt: now,
+  };
+}
 
 /** Único mapa jogável até agora: o primeiro microambiente visual, os arredores
  * de Varreth (docs/design/06-WORLD-NARRATIVE-BIBLE.md §2) — ainda não a vila

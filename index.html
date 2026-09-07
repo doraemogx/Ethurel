@@ -86,11 +86,22 @@
         color: #9aa08c;
       }
 
-      /* Portrait: esconde o jogo, mostra o pedido de rotação. */
+      /* Portrait: esconde o jogo, mostra o pedido de rotação.
+         Esta media query é só o estado ANTES do JS assumir (evita flash
+         errado no primeiro paint). Depois que `src/core/orientation.ts`
+         carrega, quem manda é a classe `.is-portrait`/`.is-landscape` em
+         <html>, recalculada a cada resize/orientationchange/visibilitychange
+         a partir de innerWidth/innerHeight reais — não só da media query,
+         que sozinha era a causa do overlay "preso" ao girar fisicamente o
+         aparelho (ver src/core/orientation.ts). */
       @media (orientation: portrait) {
         #game-root { display: none; }
         #rotate-overlay { display: flex; }
       }
+      html.is-portrait #game-root { display: none; }
+      html.is-portrait #rotate-overlay { display: flex; }
+      html.is-landscape #game-root { display: flex; }
+      html.is-landscape #rotate-overlay { display: none; }
     </style>
   </head>
   <body>

@@ -1,56 +1,105 @@
 import { saveStore } from '@/save/SaveStore';
 import {
-  createEmptySaveV2,
+  createEmptySaveV3,
   CURRENT_SCHEMA_VERSION,
   type PlayerSaveState,
   type SaveData,
   type SaveDataV1,
   type SaveDataV2,
+  type SaveDataV3,
 } from '@/save/schema';
 import { migrate001To002 } from '@/save/migrations/001_to_002';
+import { migrate002To003 } from '@/save/migrations/002_to_003';
 
-/** Chave real do save de jogo, a partir da Fase 2. */
 const SAVE_KEY = 'save_slot_1';
-
-/** Chave do save de teste da Fase 1 (ver src/core — cena removida na Fase 2).
- * Se existir e ainda não houver save em `SAVE_KEY`, é migrada e depois apagada,
- * provando que a cadeia de migração v1→v2 funciona de verdade quando aplicável. */
 const LEGACY_DEV_CHECK_KEY = 'dev_boot_check';
 
-/**
- * Carrega o save atual, migrando se necessário, e sempre devolve algo utilizável
- * (nunca lança, nunca trava o jogo por falta de save ou por save desatualizado).
- */
-export function loadOrCreateSave(): SaveDataV2 {
+/** Só grava se `save` foi marcado sujo desde a última gravação (ver
+ * `scheduleSave`/`flushSave` abaixo) — versão anterior gravava a cada 500ms
+ * SEMPRE, independentemente de ter havido mudança real. */
+export function loadOrCreateSave(): SaveDataV3 {
   const current = saveStore.load<SaveData>(SAVE_KEY);
   if (current) {
-    if (current.schemaVersion === CURRENT_SCHEMA_VERSION) return current as SaveDataV2;
-    if (current.schemaVersion === 1) {
-      const migrated = migrate001To002(current as SaveDataV1);
+    if (current.schemaVersion === CURRENT_SCHEMA_VERSION) return current as SaveDataV3;
+    if (current.schemaVersion === 2) {
+      const migrated = migrate002To003(current as SaveDataV2);
       saveStore.save(SAVE_KEY, migrated);
       return migrated;
     }
-    // schemaVersion desconhecido/futuro (ex.: save de uma versão mais nova do
-    // jogo aberto numa build antiga) — nunca apagar, guarda de lado e começa
-    // um save novo em vez de travar ou corromper o existente.
+    if (current.schemaVersion === 1) {
+      const v2 = migrate001To002(current as SaveDataV1);
+      const v3 = migrate002To003(v2);
+      saveStore.save(SAVE_KEY, v3);
+      return v3;
+    }
     console.warn('[gameSave] schemaVersion não reconhecido, preservando save original sob backup.');
     saveStore.save(`${SAVE_KEY}__backup_unrecognized`, current);
-    return createEmptySaveV2();
+    return createEmptySaveV3();
   }
 
   const legacy = saveStore.load<SaveDataV1>(LEGACY_DEV_CHECK_KEY);
   if (legacy && legacy.schemaVersion === 1) {
-    const migrated = migrate001To002(legacy);
-    saveStore.save(SAVE_KEY, migrated);
+    const v2 = migrate001To002(legacy);
+    const v3 = migrate002To003(v2);
+    saveStore.save(SAVE_KEY, v3);
     saveStore.delete(LEGACY_DEV_CHECK_KEY);
-    return migrated;
+    return v3;
   }
 
-  return createEmptySaveV2();
+  return createEmptySaveV3();
 }
 
-export function persistPlayerState(save: SaveDataV2, player: PlayerSaveState): boolean {
-  save.player = player;
+/** Existe um save de personagem utilizável (para decidir New Game vs Continue
+ * na tela de título) sem precisar carregar/migrar tudo primeiro. */
+export function hasContinuableSave(): boolean {
+  const current = saveStore.load<SaveData>(SAVE_KEY);
+  if (!current) return false;
+  if (current.schemaVersion === 3) return (current as SaveDataV3).character !== null;
+  return false;
+}
+
+// ---- Autosave: dirty-flag + debounce, nunca grava sem mudança real ----
+
+const DEBOUNCE_MS = 2000;
+let dirty = false;
+let debounceHandle: ReturnType<typeof setTimeout> | null = null;
+
+function writeNow(save: SaveDataV3): void {
   save.updatedAt = Date.now();
-  return saveStore.save(SAVE_KEY, save);
+  saveStore.save(SAVE_KEY, save);
+  dirty = false;
+  if (debounceHandle !== null) {
+    clearTimeout(debounceHandle);
+    debounceHandle = null;
+  }
+}
+
+/** Marca o save como sujo e agenda uma gravação debounced (no máx. 1 a cada
+ * `DEBOUNCE_MS`, coalescendo qualquer número de chamadas nesse intervalo em
+ * uma única escrita) — usar para mudanças de rotina (posição durante
+ * movimento). Para eventos importantes (quest, decisão, fim de combate),
+ * prefira `flushSave` (grava imediatamente). */
+export function scheduleSave(save: SaveDataV3): void {
+  dirty = true;
+  if (debounceHandle !== null) return;
+  debounceHandle = setTimeout(() => writeNow(save), DEBOUNCE_MS);
+}
+
+/** Grava imediatamente se houver mudança pendente — usar em visibilitychange
+ * (app indo para background) e após eventos que não podem se perder. */
+export function flushSave(save: SaveDataV3): void {
+  if (!dirty) return;
+  writeNow(save);
+}
+
+/** Força gravação mesmo sem `dirty` (usar só logo após uma mutação síncrona
+ * que o chamador sabe ser real, ex.: conclusão de criação de personagem). */
+export function forceSave(save: SaveDataV3): void {
+  dirty = true;
+  writeNow(save);
+}
+
+export function persistPlayerState(save: SaveDataV3, player: PlayerSaveState): void {
+  save.player = player;
+  scheduleSave(save);
 }

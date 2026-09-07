@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
+import { TitleScene } from '@/ui/TitleScene';
+import { CharacterCreationScene } from '@/ui/CharacterCreationScene';
 import { VarrethOutskirtsScene } from '@/world/VarrethOutskirtsScene';
+import { BattleScene } from '@/combat/BattleScene';
 import { GAME_ZOOM, LOGICAL_HEIGHT, computeLogicalWidth } from '@/core/config';
 
 /**
@@ -26,6 +29,6 @@ export function createGame(parent: HTMLElement): Phaser.Game {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [VarrethOutskirtsScene],
+    scene: [TitleScene, CharacterCreationScene, VarrethOutskirtsScene, BattleScene],
   });
 }

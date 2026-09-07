@@ -1,21 +1,26 @@
 /**
- * Arquitetura de animação do personagem — data-driven, para que adicionar
- * attack/cast/hurt/death mais tarde seja popular este mapa, não reescrever o
+ * Arquitetura de animação do personagem — data-driven: popular este mapa é
+ * o único trabalho para adicionar um novo estado, nunca reescrever o
  * PlayerController. Ver docs/design/05-DIRECAO-DE-ARTE.md §3 (VFX) para o
- * pipeline visual que ataques usarão quando o combate existir (Fase 5+).
+ * pipeline visual de combate (Fase de combate desta entrega).
  *
- * Nenhum estado além de idle/walk* é populado nesta build — os packs com
- * licença confirmada (Kenney) não têm personagem animado com direções, e o
- * pack que teria attack/cast/hurt/death (LPC) não teve a licença confirmada
- * pelo material recebido (ver CREDITS.md). `attack`/`cast`/`hurt`/`death`
- * ficam com tipo válido mas **não registrados** — código que os consome
- * precisa checar presença, nunca assumir que existem.
+ * 'walkLeft'/'walkRight' substituem o antigo 'walkSide'+flip do ciclo
+ * anterior — o spritesheet real (Mighty Pack, ver src/player/sprite.ts) tem
+ * frames verdadeiros para as 4 direções, então usamos os frames reais em
+ * vez de espelhar um único lado (mais fiel à arte original, que pode ter
+ * detalhes assimétricos).
+ *
+ * `attack`/`cast`/`hurt`/`death` não são populados aqui (o sprite de mundo
+ * não precisa deles — a representação do jogador em combate usa um
+ * personagem diferente, ver src/combat/), mas o tipo continua existindo
+ * para qualquer consumidor futuro que precise checar presença.
  */
 export type AnimationState =
   | 'idle'
   | 'walkDown'
   | 'walkUp'
-  | 'walkSide'
+  | 'walkLeft'
+  | 'walkRight'
   | 'attack'
   | 'cast'
   | 'hurt'

@@ -1,13 +1,17 @@
 import Phaser from 'phaser';
 import { VirtualJoystick } from '@/player/VirtualJoystick';
-import { ensurePlayerTexture, PLAYER_ANIMATIONS, PLAYER_FRAME_HEIGHT, PLAYER_FRAMES, PLAYER_TEXTURE_KEY } from '@/player/sprite';
-import { getClip, type AnimationState } from '@/player/animation';
+import { PLAYER_TEXTURE_KEY, PLAYER_FRAME_HEIGHT, buildAnimationSetForGender } from '@/player/sprite';
+import { getClip, type AnimationState, type CharacterAnimationSet } from '@/player/animation';
+import type { Gender } from '@/player/types';
 
 export interface PlayerControllerOptions {
   speed?: number;
+  /** Textura a usar — permite reaproveitar o controller para NPCs futuros
+   * com outra folha, sem duplicar a classe. Padrão: sprite do jogador. */
+  textureKey?: string;
 }
 
-type Facing = 'down' | 'up' | 'side';
+type Facing = 'down' | 'up' | 'left' | 'right';
 
 export class PlayerController {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
@@ -19,18 +23,27 @@ export class PlayerController {
   private animFrameIndex = 0;
   private animState: AnimationState = 'idle';
   private facing: Facing = 'down';
-  private facingLeft = false;
+  private animations: CharacterAnimationSet;
+  private inputEnabled = true;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, viewportWidth: number, viewportHeight: number, options: PlayerControllerOptions = {}) {
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    viewportWidth: number,
+    viewportHeight: number,
+    gender: Gender,
+    options: PlayerControllerOptions = {}
+  ) {
     this.speed = options.speed ?? 60;
+    this.animations = buildAnimationSetForGender(gender);
 
-    ensurePlayerTexture(scene);
-
-    this.sprite = scene.physics.add.sprite(x, y, PLAYER_TEXTURE_KEY, PLAYER_FRAMES.idleA);
+    const textureKey = options.textureKey ?? PLAYER_TEXTURE_KEY;
+    this.sprite = scene.physics.add.sprite(x, y, textureKey, getClip(this.animations, 'idle')?.frames[0] ?? 0);
     this.sprite.setOrigin(0.5, 1);
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    body.setSize(10, 8);
-    body.setOffset(4, PLAYER_FRAME_HEIGHT - 8);
+    body.setSize(16, 10);
+    body.setOffset((32 - 16) / 2, PLAYER_FRAME_HEIGHT - 10);
     this.sprite.setCollideWorldBounds(true);
 
     this.cursors = scene.input.keyboard?.createCursorKeys() ?? null;
@@ -46,7 +59,17 @@ export class PlayerController {
     this.joystick = new VirtualJoystick(scene, viewportWidth, viewportHeight);
   }
 
+  /** Diálogo/combate pausam o movimento sem destruir o controller. */
+  setInputEnabled(enabled: boolean): void {
+    this.inputEnabled = enabled;
+    if (!enabled) {
+      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+      body.setVelocity(0, 0);
+    }
+  }
+
   private readInputVector(): { x: number; y: number } {
+    if (!this.inputEnabled) return { x: 0, y: 0 };
     let x = 0;
     let y = 0;
 
@@ -67,14 +90,13 @@ export class PlayerController {
   }
 
   /** Prioriza o eixo dominante para decidir a direção "de leitura" do sprite —
-   * convenção comum de RPG top-down (só 3 conjuntos de frames: baixo/cima/lado). */
+   * agora com frames reais para as 4 direções (sem espelhar lado). */
   private updateFacing(dir: { x: number; y: number }): void {
     if (dir.x === 0 && dir.y === 0) return; // mantém a última direção ao parar
-    if (Math.abs(dir.y) > Math.abs(dir.x) * 1.2) {
+    if (Math.abs(dir.y) > Math.abs(dir.x)) {
       this.facing = dir.y < 0 ? 'up' : 'down';
-    } else if (dir.x !== 0) {
-      this.facing = 'side';
-      this.facingLeft = dir.x < 0;
+    } else {
+      this.facing = dir.x < 0 ? 'left' : 'right';
     }
   }
 
@@ -85,7 +107,6 @@ export class PlayerController {
 
     const moving = dir.x !== 0 || dir.y !== 0;
     this.updateFacing(dir);
-    this.sprite.setFlipX(this.facing === 'side' && this.facingLeft);
 
     const nextState: AnimationState = !moving
       ? 'idle'
@@ -93,7 +114,9 @@ export class PlayerController {
         ? 'walkDown'
         : this.facing === 'up'
           ? 'walkUp'
-          : 'walkSide';
+          : this.facing === 'left'
+            ? 'walkLeft'
+            : 'walkRight';
 
     if (nextState !== this.animState) {
       this.animState = nextState;
@@ -101,10 +124,7 @@ export class PlayerController {
       this.animFrameIndex = 0;
     }
 
-    // Estados sem clipe registrado (attack/cast/hurt/death — ver
-    // src/player/animation.ts) simplesmente não têm o que tocar ainda;
-    // isso nunca deveria acontecer para idle/walk*, mas o código não assume.
-    const clip = getClip(PLAYER_ANIMATIONS, this.animState);
+    const clip = getClip(this.animations, this.animState);
     if (clip) {
       this.animTimer += deltaMs;
       if (this.animTimer > clip.frameDurationMs) {
