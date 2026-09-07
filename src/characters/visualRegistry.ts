@@ -5,7 +5,7 @@
  * aleatória de rosto). Assets processados em `public/assets/img/` — origem e
  * licença de cada um em `docs/assets/ASSET-CATALOG.md`.
  */
-import type { CharacterVisualProfile } from '@/characters/types';
+import type { CharacterVisualProfile, Gender } from '@/characters/types';
 import { IMG } from '@/ui/assetPath';
 
 export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
@@ -52,7 +52,14 @@ export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
     visualTheme: 'arauto-do-musgo',
   },
 
-  // Opções de retrato do jogador (criação — passo Aparência/apresentação)
+  // Opções de retrato do jogador (criação — passo Masculino/Feminino +
+  // Aparência). Fase 3 (Vertical Slice Visual): `presentation` marcado por
+  // inspeção visual direta de cada arte (nenhuma delas foi encomendada por
+  // gênero — são 4 retratos genéricos herdados do pack de personagens) —
+  // viajante-b e viajante-d leem masculino (traços/figurino), viajante-a e
+  // viajante-c leem feminino. Isso é o que garante a regra "nunca usar a
+  // mesma arte pros dois gêneros": cada apresentação filtra para 2 opções
+  // com arte real e distinta, nunca as 4 misturadas.
   'player-viajante-a': {
     id: 'player-viajante-a',
     portrait: `${IMG}/portraits/viajante-a-neutral.webp`,
@@ -65,6 +72,7 @@ export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
       suspicious: `${IMG}/portraits/viajante-a-suspicious.webp`,
       hurt: `${IMG}/portraits/viajante-a-hurt.webp`,
     },
+    presentation: 'feminino',
   },
   'player-viajante-b': {
     id: 'player-viajante-b',
@@ -78,6 +86,7 @@ export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
       suspicious: `${IMG}/portraits/viajante-b-suspicious.webp`,
       hurt: `${IMG}/portraits/viajante-b-hurt.webp`,
     },
+    presentation: 'masculino',
   },
   'player-viajante-c': {
     id: 'player-viajante-c',
@@ -91,6 +100,7 @@ export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
       suspicious: `${IMG}/portraits/viajante-c-suspicious.webp`,
       hurt: `${IMG}/portraits/viajante-c-hurt.webp`,
     },
+    presentation: 'feminino',
   },
   'player-viajante-d': {
     id: 'player-viajante-d',
@@ -104,10 +114,23 @@ export const VISUAL_PROFILES: Record<string, CharacterVisualProfile> = {
       suspicious: `${IMG}/portraits/viajante-d-suspicious.webp`,
       hurt: `${IMG}/portraits/viajante-d-hurt.webp`,
     },
+    presentation: 'masculino',
   },
 };
 
 export const PLAYER_PORTRAIT_CHOICES = ['player-viajante-a', 'player-viajante-b', 'player-viajante-c', 'player-viajante-d'];
+
+/** Filtra as opções de retrato do jogador pela apresentação escolhida no
+ * passo Masculino/Feminino (Fase 3) — nunca mistura arte de outra
+ * apresentação na grade. 'outro' não filtra (mostra todas): não há arte
+ * catalogada especificamente fora do binário nesta vertical slice, então
+ * negar as 4 opções seria pior do que mostrar todas sem filtrar. */
+export function playerPortraitChoicesFor(gender: Gender | null): string[] {
+  if (gender === 'masculino' || gender === 'feminino') {
+    return PLAYER_PORTRAIT_CHOICES.filter((id) => VISUAL_PROFILES[id].presentation === gender);
+  }
+  return PLAYER_PORTRAIT_CHOICES;
+}
 
 export function visualProfile(id: string | undefined): CharacterVisualProfile | undefined {
   if (!id) return undefined;

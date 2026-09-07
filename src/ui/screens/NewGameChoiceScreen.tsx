@@ -1,6 +1,7 @@
 import { SceneBackdrop } from '@/ui/components/SceneBackdrop';
 import { MysticButton } from '@/ui/components/MysticButton';
 import { sceneArtFor } from '@/ui/visual/sceneArt';
+import { IMG } from '@/ui/assetPath';
 
 export interface NewGameChoiceScreenProps {
   onBack: () => void;
@@ -11,10 +12,11 @@ export interface NewGameChoiceScreenProps {
 export function NewGameChoiceScreen({ onBack, onCustom, onOrigin }: NewGameChoiceScreenProps) {
   return (
     <div className="screen">
-      <SceneBackdrop art={sceneArtFor('village')} />
+      <SceneBackdrop art={sceneArtFor('village')} backgroundImage={`${IMG}/backgrounds/varreth-market.webp`} />
       <div className="screen__content stack--center">
         <div className="title-block">
           <h1 style={{ fontSize: 22 }}>Quem você é?</h1>
+          <p className="title-tagline" style={{ margin: '8px 0 0' }}>Toda história em Ethurel começa em Varreth — só falta decidir com que rosto você chega.</p>
         </div>
         <div className="stack" style={{ marginTop: 28, width: '100%', maxWidth: 320 }}>
           <MysticButton variant="primary" onClick={onCustom}>

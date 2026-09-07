@@ -23,7 +23,14 @@ export function TitleScreen({ onContinue, onNewGame, onCampaigns, onSettings }: 
 
   return (
     <div className="screen">
-      <SceneBackdrop art={sceneArtFor('forest')} backgroundImage={`${IMG}/backgrounds/borda-musgos-night.webp`} />
+      {/* Fase 3 (Vertical Slice Visual): a taverna substitui a clareira
+          noturna da Borda dos Musgos como pano de fundo do menu — aquela
+          arte tem tom ciano/roxo saturado e orbes brilhantes que leem como
+          "fantasia cósmica"/neon, exatamente o que a nova direção visual
+          pede para evitar. A taverna (pedra, madeira, luz de vela) já
+          comunica a identidade rústica de Ethurel sem precisar de arte
+          nova — ver ASSET_AUDIT.md. */}
+      <SceneBackdrop art={sceneArtFor('village')} backgroundImage={`${IMG}/backgrounds/varreth-tavern.webp`} />
       <div className="title-stage" />
       <div className="screen__content stack--center">
         <div className="title-block">

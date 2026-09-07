@@ -3,14 +3,17 @@ import { SceneBackdrop } from '@/ui/components/SceneBackdrop';
 import { MysticButton } from '@/ui/components/MysticButton';
 import { ClassDetailCard } from '@/ui/components/ClassDetailCard';
 import { ArcaneSigil } from '@/ui/components/ArcaneSigil';
+import { CreationStage } from '@/ui/components/CreationStage';
+import { ItemIcon } from '@/ui/components/ItemIcon';
+import type { ItemIcon as ItemIconMotif } from '@/items/types';
 import { sceneArtFor } from '@/ui/visual/sceneArt';
 import { IMG } from '@/ui/assetPath';
 import { getClassTheme } from '@/ui/visual/classThemes';
 import { arcaneIdentityForClass } from '@/arcane/identity';
 import { CLASSES } from '@/data/classes';
 import { ORIGINS } from '@/data/origins';
-import { ANCESTRIES, findAncestry, findVariant } from '@/data/ancestries';
-import { PLAYER_PORTRAIT_CHOICES, visualProfile } from '@/characters/visualRegistry';
+import { ANCESTRIES, findAncestry, findVariant, type AncestryDefinition } from '@/data/ancestries';
+import { playerPortraitChoicesFor, visualProfile } from '@/characters/visualRegistry';
 import { PRINCIPLES, DESIRES, FEARS, LIMITS, type CreationOption } from '@/data/characterCreationOptions';
 import { computeMaxHp, computeMaxFocus } from '@/domain/dice';
 import {
@@ -51,8 +54,41 @@ type Step =
 
 const STEPS: Step[] = ['ancestralidade', 'variante', 'aparencia', 'classe', 'atributos', 'origem', 'principio', 'desejo', 'medo', 'limite', 'identidade-arcana', 'revisao'];
 
+// Fase 3 (Vertical Slice Visual, "Classe"): o slice mostra só UMA classe
+// completa. As outras 7 continuam existindo em src/data/classes.ts (usadas
+// por Personagens de Origem e no jogo já em curso) — só o passo de CRIAÇÃO
+// as esconde nesta prévia, por decisão explícita do escopo desta fase.
+export const SLICE_CLASS_ID = 'portador-de-cinza';
+
 const GENDER_LABEL: Record<Gender, string> = { masculino: 'Masculino', feminino: 'Feminino', outro: 'Outro' };
 const ATTR_LABEL: Record<keyof Attrs, string> = { vigor: 'Vigor', reflexo: 'Reflexo', mente: 'Mente', presenca: 'Presença' };
+export const ATTR_EXPLAIN: Record<keyof Attrs, string> = {
+  vigor: 'Corpo, resistência e fôlego — define seu HP máximo e o quanto você aguenta golpe físico direto.',
+  reflexo: 'Velocidade, reação e precisão — pesa em esquiva, iniciativa e ataques que dependem de agilidade.',
+  mente: 'Raciocínio e controle interno — define seu Foco Arcano máximo e o quanto você lê padrões, riscos e mentiras.',
+  presenca: 'Como você ocupa espaço diante dos outros — pesa em persuasão, intimidação e percepção social; não é "carisma bonzinho", é peso.',
+};
+
+// Fase 3 (Vertical Slice Visual, passo Ancestralidade/Variante): nenhuma
+// ancestralidade tem arte de personagem própria (ver ASSET_AUDIT.md — os
+// packs cobrem retratos genéricos de viajante, não 4 corpos por
+// ancestralidade). Em vez de fingir uma diferença visual que não existe, o
+// passo usa o mesmo vocabulário de ícone/motivo já usado por classe/item
+// (ash/thread/trail/shadow/stone/moss/sigil/bone, ver ItemIcon.tsx) como
+// emblema — real, reaproveitado, mas propositalmente não uma silhueta de
+// personagem (documentado no relatório da fase como lacuna de asset).
+export const ANCESTRY_ICON: Record<string, ItemIconMotif> = {
+  'pedra-funda': 'stone',
+  'musgo-antigo': 'moss',
+  'errantes-da-estrada': 'trail',
+  'marcados-do-selo': 'sigil',
+};
+export const ANCESTRY_ACCENT: Record<string, string> = {
+  'pedra-funda': '#a9997a',
+  'musgo-antigo': '#6fae7a',
+  'errantes-da-estrada': '#b9834f',
+  'marcados-do-selo': '#8a97a3',
+};
 
 /**
  * Criação de personagem — fluxo de 12 passos (Phase 3 §6-§11): Ancestralidade
@@ -71,7 +107,6 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
   const [name, setName] = useState('');
   const [portraitId, setPortraitId] = useState<string | null>(null);
   const [classId, setClassId] = useState<string | null>(null);
-  const [classIndex, setClassIndex] = useState(0);
   const [attrAdjustments, setAttrAdjustments] = useState<AttrAdjustments>(emptyAdjustments());
   const [originId, setOriginId] = useState<string | null>(null);
   const [principle, setPrinciple] = useState<CreationOption | null>(null);
@@ -167,24 +202,9 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
         </div>
 
         {step === 'ancestralidade' && (
-          <SelectConfirmStep
-            title="Qual sua ancestralidade?"
-            items={ANCESTRIES}
-            initialSelectedId={ancestryId}
-            getLabel={(a) => (
-              <>
-                <strong>{a.name}</strong>
-                <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>{a.tagline}</div>
-              </>
-            )}
-            getDetail={(a) => (
-              <>
-                <p style={{ margin: '0 0 6px' }}>{a.description}</p>
-                <p style={{ margin: '0 0 4px', color: 'var(--text-dim)' }}><strong>Aparência:</strong> {a.appearanceNote}</p>
-                <p style={{ margin: 0, color: 'var(--text-dim)' }}><strong>Entre quem vive perto:</strong> {a.npcRecognitionHook}</p>
-              </>
-            )}
-            confirmLabel={(a) => `Confirmar ${a.name}`}
+          <AncestryPicker
+            selectedId={ancestryId}
+            stepLabel={`${stepIndex + 1} de ${STEPS.length} · Ancestralidade`}
             onConfirm={(a) => {
               setAncestryId(a.id);
               if (variantId && !findVariant(a, variantId)) setVariantId(null);
@@ -195,138 +215,208 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
         )}
 
         {step === 'variante' && ancestry && (
-          <SelectConfirmStep
-            title={`Qual variante de ${ancestry.name}?`}
-            items={ancestry.variants}
-            initialSelectedId={variantId}
-            getLabel={(v) => <strong>{v.name}</strong>}
-            getDetail={(v) => (
-              <>
-                <p style={{ margin: '0 0 6px' }}>{v.description}</p>
-                <p style={{ margin: 0, color: 'var(--text-dim)' }}>{v.flavorNote}</p>
-              </>
-            )}
-            confirmLabel={(v) => `Confirmar ${v.name}`}
+          <VariantPicker
+            ancestry={ancestry}
+            selectedId={variantId}
+            stepLabel={`${stepIndex + 1} de ${STEPS.length} · Variante`}
             onConfirm={(v) => { setVariantId(v.id); goNextStep(); }}
             onBack={goBackStep}
           />
         )}
 
-        {step === 'aparencia' && (
-          <>
-            <h2 style={{ fontWeight: 400, textAlign: 'center' }}>Quem você é?</h2>
-            <div style={{ overflowY: 'auto', flex: 1, marginTop: 10 }}>
-              <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-dim)', margin: '0 0 6px' }}>Apresentação</p>
-              <div className="stack" style={{ marginBottom: 14 }}>
-                {(Object.keys(GENDER_LABEL) as Gender[]).map((g) => (
-                  <MysticButton key={g} variant="action" className={gender === g ? 'mystic-btn--selected' : ''} onClick={() => setGender(g)}>
-                    {GENDER_LABEL[g]}
+        {step === 'aparencia' && (() => {
+          const stageAccent = ancestry ? ANCESTRY_ACCENT[ancestry.id] : theme.accent;
+          const stageIcon = ancestry ? ANCESTRY_ICON[ancestry.id] : 'sigil';
+          const chosenProfile = portraitId ? visualProfile(portraitId) : undefined;
+          const filteredChoices = playerPortraitChoicesFor(gender);
+          return (
+            <CreationStage
+              eyebrow={`${stepIndex + 1} de ${STEPS.length} · Masculino/Feminino & Aparência`}
+              title={name.trim() || 'Quem você é?'}
+              subtitle={gender ? GENDER_LABEL[gender] : 'Escolha uma apresentação para revelar seu personagem'}
+              mainAccent={stageAccent}
+              main={
+                chosenProfile?.fullBody ? (
+                  <img src={chosenProfile.fullBody} alt="" />
+                ) : (
+                  <ItemIcon motif={stageIcon} size={132} color={stageAccent} />
+                )
+              }
+              secondary={
+                <div className="stack" style={{ gap: 10 }}>
+                  <div>
+                    <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-dim)', margin: '0 0 6px' }}>Nome</p>
+                    <input
+                      autoFocus
+                      value={name}
+                      maxLength={24}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Nome do personagem"
+                      style={{
+                        background: 'rgba(28,22,16,0.75)',
+                        border: '1px solid rgba(217,208,189,0.28)',
+                        borderRadius: 10,
+                        padding: '11px 16px',
+                        color: 'var(--text)',
+                        fontSize: 16,
+                        textAlign: 'center',
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                  {gender === 'outro' && (
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--text-dim)' }}>
+                      Ainda não existe arte própria para essa apresentação nesta prévia — mostrando as 4 opções de retrato disponíveis, sem filtrar.
+                    </p>
+                  )}
+                </div>
+              }
+              controls={
+                <>
+                  <p style={{ margin: '0 0 4px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-dim)', textAlign: 'center' }}>Apresentação</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {(Object.keys(GENDER_LABEL) as Gender[]).map((g) => (
+                      <MysticButton
+                        key={g}
+                        variant="action"
+                        className={gender === g ? 'mystic-btn--selected' : ''}
+                        style={{ flex: 1, textAlign: 'center' }}
+                        onClick={() => {
+                          setGender(g);
+                          const stillValid = portraitId && playerPortraitChoicesFor(g).includes(portraitId);
+                          if (!stillValid) setPortraitId(null);
+                        }}
+                      >
+                        {GENDER_LABEL[g]}
+                      </MysticButton>
+                    ))}
+                  </div>
+
+                  {gender && (
+                    <>
+                      <p style={{ margin: '10px 0 4px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-dim)', textAlign: 'center' }}>Retrato</p>
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                        {filteredChoices.map((pid) => {
+                          const profile = visualProfile(pid);
+                          return (
+                            <div
+                              key={pid}
+                              className={`portrait-choice ${portraitId === pid ? 'portrait-choice--selected' : ''}`}
+                              style={{ width: 76, height: 76 }}
+                              onClick={() => setPortraitId(pid)}
+                            >
+                              {profile?.portrait && <img src={profile.portrait} alt="" loading="lazy" decoding="async" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  <MysticButton variant="primary" disabled={!name.trim() || !gender || !portraitId} onClick={goNextStep} style={{ marginTop: 10 }}>
+                    Continuar
                   </MysticButton>
-                ))}
-              </div>
+                  <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
+                </>
+              }
+            />
+          );
+        })()}
 
-              <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-dim)', margin: '0 0 6px' }}>Nome</p>
-              <input
-                autoFocus
-                value={name}
-                maxLength={24}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nome do personagem"
-                style={{
-                  background: 'rgba(18,15,36,0.7)',
-                  border: '1px solid rgba(216,211,230,0.3)',
-                  borderRadius: 10,
-                  padding: '12px 16px',
-                  color: 'var(--text)',
-                  fontSize: 16,
-                  textAlign: 'center',
-                  width: '100%',
-                  marginBottom: 14,
-                }}
-              />
-
-              <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-dim)', margin: '0 0 6px' }}>Retrato</p>
-              <div className="portrait-choice-grid">
-                {PLAYER_PORTRAIT_CHOICES.map((pid) => {
-                  const profile = visualProfile(pid);
-                  return (
+        {step === 'classe' && (() => {
+          const previewClass = CLASSES.find((c) => c.id === SLICE_CLASS_ID)!;
+          const previewTheme = getClassTheme(previewClass.id);
+          const chosenProfile = portraitId ? visualProfile(portraitId) : undefined;
+          return (
+            <CreationStage
+              eyebrow={`${stepIndex + 1} de ${STEPS.length} · Classe`}
+              title="Sua Classe"
+              subtitle="Nesta prévia, apenas uma classe está pronta para jogar — as outras 7 chegam depois da aprovação visual."
+              mainAccent={previewTheme.accent}
+              main={
+                <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                  {chosenProfile?.fullBody ? (
+                    <img src={chosenProfile.fullBody} alt="" />
+                  ) : (
+                    <ItemIcon motif="ash" size={132} color={previewTheme.accent} />
+                  )}
+                  {chosenProfile?.fullBody && (
                     <div
-                      key={pid}
-                      className={`portrait-choice ${portraitId === pid ? 'portrait-choice--selected' : ''}`}
-                      onClick={() => setPortraitId(pid)}
-                    >
-                      {profile?.portrait && <img src={profile.portrait} alt="" loading="lazy" decoding="async" />}
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: `linear-gradient(180deg, ${previewTheme.glow} 0%, transparent 60%)`,
+                        mixBlendMode: 'screen',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  <div style={{ position: 'absolute', top: 4, right: 4 }}>
+                    <ItemIcon motif="ash" size={40} color={previewTheme.accent} />
+                  </div>
+                </div>
+              }
+              secondary={<ClassDetailCard classDef={previewClass} />}
+              controls={
+                <>
+                  <p style={{ margin: '0 0 6px', fontSize: 11.5, color: 'var(--text-dim)', textAlign: 'center' }}>
+                    A classe muda a atmosfera ao redor de {name || 'você'} (cor, partículas, sigilo) — o figurino/equipamento ainda não tem arte própria por classe nesta prévia.
+                  </p>
+                  <MysticButton
+                    variant="primary"
+                    onClick={() => { setClassId(previewClass.id); setAttrAdjustments(emptyAdjustments()); goNextStep(); }}
+                  >
+                    Escolher {previewClass.name}
+                  </MysticButton>
+                  <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
+                </>
+              }
+            />
+          );
+        })()}
+
+        {step === 'atributos' && selectedClassDef && (() => {
+          const chosenProfile = portraitId ? visualProfile(portraitId) : undefined;
+          return (
+            <CreationStage
+              eyebrow={`${stepIndex + 1} de ${STEPS.length} · Atributos`}
+              title="Distribua seus atributos"
+              subtitle={`Pontos restantes: ${ATTR_POINT_BUDGET - pointsSpent(attrAdjustments)}/${ATTR_POINT_BUDGET} · preset de ${selectedClassDef.name}${ancestry ? ` + ${ancestry.name}` : ''}`}
+              mainAccent={theme.accent}
+              main={chosenProfile?.fullBody ? <img src={chosenProfile.fullBody} alt="" /> : <ItemIcon motif="ash" size={110} color={theme.accent} />}
+              secondary={
+                <div className="stack" style={{ gap: 2 }}>
+                  {(Object.keys(ATTR_LABEL) as (keyof Attrs)[]).map((attr) => (
+                    <div key={attr} style={{ paddingBottom: 6, marginBottom: 4, borderBottom: '1px solid rgba(217,208,189,0.08)' }}>
+                      <div className="attr-row" style={{ padding: '2px 0', border: 'none' }}>
+                        <span className="attr-row__label">{ATTR_LABEL[attr]}</span>
+                        {attrAdjustments[attr] > 0 && <span className="attr-row__bonus">+{attrAdjustments[attr]}</span>}
+                        <button className="attr-stepper-btn" disabled={attrAdjustments[attr] <= 0} onClick={() => setAttrAdjustments(decrease(attrAdjustments, attr))}>−</button>
+                        <span className="attr-row__value">{classPreset[attr] + attrAdjustments[attr]}</span>
+                        <button className="attr-stepper-btn" disabled={!canIncrease(attrAdjustments, attr)} onClick={() => setAttrAdjustments(increase(attrAdjustments, attr))}>+</button>
+                      </div>
+                      <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--text-dim)', lineHeight: 1.4 }}>{ATTR_EXPLAIN[attr]}</p>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="stack" style={{ marginTop: 12 }}>
-              <MysticButton variant="primary" disabled={!name.trim() || !gender || !portraitId} onClick={goNextStep}>
-                Continuar
-              </MysticButton>
-              <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
-            </div>
-          </>
-        )}
-
-        {step === 'classe' && (
-          <>
-            <div className="class-carousel-nav">
-              <MysticButton variant="ghost" style={{ padding: '6px 14px' }} onClick={() => setClassIndex((i) => (i - 1 + CLASSES.length) % CLASSES.length)}>‹</MysticButton>
-              <span style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Escolha sua classe</span>
-              <MysticButton variant="ghost" style={{ padding: '6px 14px' }} onClick={() => setClassIndex((i) => (i + 1) % CLASSES.length)}>›</MysticButton>
-            </div>
-            <div className="class-carousel-dots">
-              {CLASSES.map((c, i) => (
-                <span key={c.id} className={`class-carousel-dot ${i === classIndex ? 'class-carousel-dot--active' : ''}`} />
-              ))}
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', marginTop: 10 }}>
-              <ClassDetailCard classDef={CLASSES[classIndex]} />
-            </div>
-            <div className="stack" style={{ marginTop: 12 }}>
-              <MysticButton variant="primary" onClick={() => { setClassId(CLASSES[classIndex].id); setAttrAdjustments(emptyAdjustments()); goNextStep(); }}>
-                Escolher {CLASSES[classIndex].name}
-              </MysticButton>
-              <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
-            </div>
-          </>
-        )}
-
-        {step === 'atributos' && selectedClassDef && (
-          <>
-            <h2 style={{ fontWeight: 400, textAlign: 'center', margin: '0 0 2px' }}>Distribua seus atributos</h2>
-            <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-dim)', margin: '0 0 8px' }}>
-              Pontos restantes: {ATTR_POINT_BUDGET - pointsSpent(attrAdjustments)}/{ATTR_POINT_BUDGET} · preset de {selectedClassDef.name}{ancestry ? ` + ${ancestry.name}` : ''}
-            </p>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {(Object.keys(ATTR_LABEL) as (keyof Attrs)[]).map((attr) => (
-                <div key={attr} className="attr-row">
-                  <span className="attr-row__label">{ATTR_LABEL[attr]}</span>
-                  {attrAdjustments[attr] > 0 && <span className="attr-row__bonus">+{attrAdjustments[attr]}</span>}
-                  <button className="attr-stepper-btn" disabled={attrAdjustments[attr] <= 0} onClick={() => setAttrAdjustments(decrease(attrAdjustments, attr))}>−</button>
-                  <span className="attr-row__value">{classPreset[attr] + attrAdjustments[attr]}</span>
-                  <button className="attr-stepper-btn" disabled={!canIncrease(attrAdjustments, attr)} onClick={() => setAttrAdjustments(increase(attrAdjustments, attr))}>+</button>
+                  ))}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    <span className="status-chip">HP {computeMaxHp(finalAttrs.vigor)}</span>
+                    <span className="status-chip">Foco {computeMaxFocus(finalAttrs.mente)}</span>
+                  </div>
                 </div>
-              ))}
-              <div className="creation-detail-panel" style={{ marginTop: 12 }}>
-                <p style={{ margin: '0 0 4px' }}>Vigor define HP máximo; Mente define Foco Arcano máximo — os dois têm consequência imediata:</p>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <span className="status-chip">HP {computeMaxHp(finalAttrs.vigor)}</span>
-                  <span className="status-chip">Foco {computeMaxFocus(finalAttrs.mente)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="stack" style={{ marginTop: 12 }}>
-              <MysticButton variant="ghost" disabled={pointsSpent(attrAdjustments) === 0} onClick={() => setAttrAdjustments(emptyAdjustments())}>
-                Redefinir para o recomendado
-              </MysticButton>
-              <MysticButton variant="primary" onClick={goNextStep}>Continuar</MysticButton>
-              <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
-            </div>
-          </>
-        )}
+              }
+              controls={
+                <>
+                  <MysticButton variant="ghost" disabled={pointsSpent(attrAdjustments) === 0} onClick={() => setAttrAdjustments(emptyAdjustments())}>
+                    Redefinir para o recomendado
+                  </MysticButton>
+                  <MysticButton variant="primary" onClick={goNextStep}>Continuar</MysticButton>
+                  <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
+                </>
+              }
+            />
+          );
+        })()}
 
         {step === 'origem' && (
           <SelectConfirmStep
@@ -406,39 +496,49 @@ export function CharacterCreationScreen({ slot, onBack, onDone }: CharacterCreat
           </div>
         )}
 
-        {step === 'revisao' && selectedClassDef && (
-          <>
-            <div className="stack--center stack" style={{ flex: 'none' }}>
-              <ArcaneSigil identity={arcaneIdentityForClass(selectedClassDef.id)} zone="controle" size={52} />
-              <h2 style={{ fontWeight: 400, margin: '4px 0 0' }}>{name}</h2>
-              <p style={{ margin: 0, fontSize: 12, color: theme.accentSoft, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center' }}>
-                {gender && GENDER_LABEL[gender]} · {ancestry?.name}{variant ? ` (${variant.name})` : ''} · {selectedClassDef.name} · {origin?.name}
-              </p>
-            </div>
-            <div className="stack" style={{ flex: 1, overflowY: 'auto', marginTop: 10, fontSize: 13 }}>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <span className="status-chip">HP {computeMaxHp(finalAttrs.vigor)}</span>
-                <span className="status-chip">Foco {computeMaxFocus(finalAttrs.mente)}</span>
-                <span className="status-chip">Sigilo: {arcaneIdentityForClass(selectedClassDef.id).label}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                {(Object.keys(ATTR_LABEL) as (keyof Attrs)[]).map((a) => (
-                  <span key={a} className="status-chip">{ATTR_LABEL[a]} {finalAttrs[a]}</span>
-                ))}
-              </div>
-              <p style={{ margin: '6px 0 0' }}><strong>Princípio:</strong> {principle?.text}</p>
-              <p style={{ margin: 0 }}><strong>Desejo:</strong> {desire?.text}</p>
-              <p style={{ margin: 0 }}><strong>Medo:</strong> {fear?.text}</p>
-              <p style={{ margin: 0 }}><strong>Limite:</strong> {limit?.text}</p>
-              {variant && <p style={{ margin: '6px 0 0', color: 'var(--text-dim)' }}>{variant.flavorNote}</p>}
-              <p style={{ margin: '6px 0 0', color: 'var(--text-dim)' }}>{origin?.description} Item inicial: {origin?.startingItem}.</p>
-            </div>
-            <div className="stack" style={{ marginTop: 12 }}>
-              <MysticButton variant="primary" onClick={finish}>Entrar em Ethurel</MysticButton>
-              <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
-            </div>
-          </>
-        )}
+        {step === 'revisao' && selectedClassDef && (() => {
+          const chosenProfile = portraitId ? visualProfile(portraitId) : undefined;
+          return (
+            <CreationStage
+              eyebrow="Revisão"
+              title={name}
+              subtitle={`${gender ? GENDER_LABEL[gender] : ''} · ${ancestry?.name ?? ''}${variant ? ` (${variant.name})` : ''} · ${selectedClassDef.name}`}
+              mainAccent={theme.accent}
+              main={
+                <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                  {chosenProfile?.fullBody ? <img src={chosenProfile.fullBody} alt="" /> : <ItemIcon motif="ash" size={132} color={theme.accent} />}
+                  <div style={{ position: 'absolute', top: 4, right: 4 }}>
+                    <ArcaneSigil identity={arcaneIdentityForClass(selectedClassDef.id)} zone="controle" size={40} />
+                  </div>
+                </div>
+              }
+              secondary={
+                <div className="stack" style={{ gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <span className="status-chip">HP {computeMaxHp(finalAttrs.vigor)}</span>
+                    <span className="status-chip">Foco {computeMaxFocus(finalAttrs.mente)}</span>
+                    <span className="status-chip">Sigilo: {arcaneIdentityForClass(selectedClassDef.id).label}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {(Object.keys(ATTR_LABEL) as (keyof Attrs)[]).map((a) => (
+                      <span key={a} className="status-chip">{ATTR_LABEL[a]} {finalAttrs[a]}</span>
+                    ))}
+                  </div>
+                  {variant && <p style={{ margin: 0, fontSize: 12, color: 'var(--text-dim)' }}>{variant.flavorNote}</p>}
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--text-dim)' }}>
+                    Origem: {origin?.name} · Princípio: {principle?.text} · Item inicial: {origin?.startingItem}.
+                  </p>
+                </div>
+              }
+              controls={
+                <>
+                  <MysticButton variant="primary" onClick={finish}>Entrar em Ethurel</MysticButton>
+                  <MysticButton variant="ghost" onClick={goBackStep}>Voltar</MysticButton>
+                </>
+              }
+            />
+          );
+        })()}
       </div>
     </div>
   );
@@ -496,5 +596,118 @@ function SelectConfirmStep<T extends { id: string }>({
         <MysticButton variant="ghost" onClick={onBack}>Voltar</MysticButton>
       </div>
     </>
+  );
+}
+
+/**
+ * Passo Ancestralidade (Fase 3 — Vertical Slice Visual): personagem ainda
+ * não existe visualmente neste ponto do fluxo (retrato só é escolhido no
+ * passo Aparência, depois), então a ÁREA PRINCIPAL usa o emblema/ícone da
+ * ancestralidade em vez de forçar uma silhueta genérica. Toque num item do
+ * trilho só troca a prévia (`previewId`); Confirmar avança de verdade.
+ */
+function AncestryPicker({
+  selectedId,
+  stepLabel,
+  onConfirm,
+  onBack,
+}: {
+  selectedId: string | null;
+  stepLabel: string;
+  onConfirm: (a: AncestryDefinition) => void;
+  onBack: () => void;
+}) {
+  const [previewId, setPreviewId] = useState(selectedId ?? ANCESTRIES[0].id);
+  const preview = findAncestry(previewId) ?? ANCESTRIES[0];
+  const accent = ANCESTRY_ACCENT[preview.id];
+  const icon = ANCESTRY_ICON[preview.id];
+
+  return (
+    <CreationStage
+      eyebrow={stepLabel}
+      title={preview.name}
+      subtitle={preview.tagline}
+      mainAccent={accent}
+      main={<ItemIcon motif={icon} size={132} color={accent} />}
+      secondary={
+        <>
+          <p style={{ margin: '0 0 8px' }}>{preview.description}</p>
+          <p style={{ margin: '0 0 4px', color: 'var(--text-dim)' }}><strong style={{ color: 'var(--text)' }}>Aparência:</strong> {preview.appearanceNote}</p>
+          <p style={{ margin: 0, color: 'var(--text-dim)' }}><strong style={{ color: 'var(--text)' }}>Entre quem vive perto:</strong> {preview.npcRecognitionHook}</p>
+        </>
+      }
+      controls={
+        <>
+          <div className="option-rail">
+            {ANCESTRIES.map((a) => (
+              <button
+                key={a.id}
+                className={`option-rail__chip ${a.id === previewId ? 'option-rail__chip--selected' : ''}`}
+                onClick={() => setPreviewId(a.id)}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+          <MysticButton variant="primary" onClick={() => onConfirm(preview)}>Confirmar {preview.name}</MysticButton>
+          <MysticButton variant="ghost" onClick={onBack}>Voltar</MysticButton>
+        </>
+      }
+    />
+  );
+}
+
+/** Passo Variante — mesma linguagem visual da Ancestralidade (mesmo emblema:
+ * a variante não muda a arte, só o texto — não existe suporte visual
+ * diferenciado por variante, e fingir um seria contra a regra da fase). */
+function VariantPicker({
+  ancestry,
+  selectedId,
+  stepLabel,
+  onConfirm,
+  onBack,
+}: {
+  ancestry: AncestryDefinition;
+  selectedId: string | null;
+  stepLabel: string;
+  onConfirm: (v: AncestryDefinition['variants'][number]) => void;
+  onBack: () => void;
+}) {
+  const [previewId, setPreviewId] = useState(selectedId ?? ancestry.variants[0].id);
+  const preview = ancestry.variants.find((v) => v.id === previewId) ?? ancestry.variants[0];
+  const accent = ANCESTRY_ACCENT[ancestry.id];
+  const icon = ANCESTRY_ICON[ancestry.id];
+
+  return (
+    <CreationStage
+      eyebrow={stepLabel}
+      title={preview.name}
+      subtitle={`Variante de ${ancestry.name}`}
+      mainAccent={accent}
+      main={<ItemIcon motif={icon} size={132} color={accent} />}
+      secondary={
+        <>
+          <p style={{ margin: '0 0 8px' }}>{preview.description}</p>
+          <p style={{ margin: 0, color: 'var(--text-dim)' }}>{preview.flavorNote}</p>
+        </>
+      }
+      controls={
+        <>
+          <div className="option-rail">
+            {ancestry.variants.map((v) => (
+              <button
+                key={v.id}
+                className={`option-rail__chip ${v.id === previewId ? 'option-rail__chip--selected' : ''}`}
+                onClick={() => setPreviewId(v.id)}
+              >
+                {v.name}
+              </button>
+            ))}
+          </div>
+          <MysticButton variant="primary" onClick={() => onConfirm(preview)}>Confirmar {preview.name}</MysticButton>
+          <MysticButton variant="ghost" onClick={onBack}>Voltar</MysticButton>
+        </>
+      }
+    />
   );
 }
