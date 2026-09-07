@@ -245,8 +245,13 @@
 .item-icon-frame {
   flex-shrink: 0;
   border-radius: 8px;
-  border: 1px solid rgba(216, 211, 230, 0.2);
-  background: rgba(216, 211, 230, 0.06);
+  border: 1px solid rgba(217, 208, 189, 0.22);
+  /* Levemente tingido de latão em vez de quase-transparente — em uso
+     pequeno (28px, inventário) isso já ajudava pouco; em uso grande
+     (emblema de ancestralidade/classe na criação, 130px+) um fundo
+     quase-invisível lia como "quadrado preto vazio" sobre o backdrop
+     escuro — exatamente o que a Fase 3 pede para evitar. */
+  background: rgba(201, 151, 63, 0.09);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -816,6 +821,11 @@
   overflow-x: auto;
   padding: 2px;
   scroll-snap-type: x proximity;
+  /* Esmaece a borda direita quando há mais opções fora da tela — sem isso,
+     um trilho de 4 chips (ex.: ancestralidade) corta a última opção sem
+     nenhuma pista de que dá pra arrastar (achado na QA visual desta fase). */
+  mask-image: linear-gradient(90deg, #000 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent 100%);
 }
 .option-rail__chip {
   flex: 0 0 auto;
