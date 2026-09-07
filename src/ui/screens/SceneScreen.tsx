@@ -34,6 +34,8 @@ import { COMBAT_DEFEAT_OUTCOME } from '@/domain/failureOutcome';
 import { upsertKnowledge } from '@/domain/knowledge';
 import { NPCS } from '@/data/npcs';
 import { visualProfile, resolveExpressionImage } from '@/characters/visualRegistry';
+import { buildNarrativeContext } from '@/narrative/NarrativeContextBuilder';
+import type { InterpretedAction } from '@/ai/NarrativeProvider';
 import { loadSettings } from '@/save/settingsStore';
 import { useGame } from '@/app/GameContext';
 import { CombatScreen } from '@/ui/screens/CombatScreen';
@@ -94,7 +96,7 @@ const CLEARING_TAG_KIND: Record<string, 'class' | 'origin'> = {
  * RPG (d20, fail forward) → consequência → nova cena.
  */
 export function SceneScreen() {
-  const { save, updateAndPersist } = useGame();
+  const { save, updateAndPersist, narrativeEngine } = useGame();
   const character = save.character!;
   const classDef = CLASSES.find((c) => c.id === character.classId)!;
   const settings = loadSettings();
@@ -113,6 +115,7 @@ export function SceneScreen() {
   const [insight, setInsight] = useState<PassiveInsight | null>(null);
   const [echoReveal, setEchoReveal] = useState<{ title: string; description: string } | null>(null);
   const [justHurt, setJustHurt] = useState(false);
+  const [interpreting, setInterpreting] = useState(false);
 
   useEffect(() => {
     setTextDone(settings.textSpeed === 'instant');
@@ -382,22 +385,78 @@ export function SceneScreen() {
     }
   }
 
-  function submitFreeAction() {
+  /**
+   * "Outra ação" — roteia por `NarrativeEngine.interpretFreeText` (Fase 0
+   * §Crítico-2): interpretação semântica → contexto de cena/NPC/eventos →
+   * IA (local ou remota) propõe intenção estruturada → aqui, código
+   * determinístico decide o que fazer com ela. A IA nunca resolve HP, dano,
+   * XP, checks etc. diretamente — só pode SUGERIR um `RequestedCheck`, que
+   * ainda passa pelo mesmo `D20Check`/`pendingCheck` usado pelas ações fixas
+   * da cena (DC continua decidido aqui, com fallback 12 se a IA não sugerir).
+   */
+  async function submitFreeAction() {
     const text = freeText.trim();
-    if (!text) return;
+    if (!text || interpreting) return;
     setFreeText('');
     setComposerOpen(false);
-    const normalized = text.toLowerCase();
-    if (/\b(examinar|observar|investigar|olhar)\b/.test(normalized)) {
-      setPendingCheck({ label: text, attribute: 'mente', dc: 12, onResolved: (success) => { setNote({ kind: 'attribute', tag: 'Mente', text: success ? 'Você percebe algo que passaria despercebido.' : 'Nada de novo, dessa vez.' }); setPendingCheck(null); } });
-    } else if (/\b(escutar|ouvir)\b/.test(normalized)) {
-      setPendingCheck({ label: text, attribute: 'presenca', dc: 12, onResolved: (success) => { setNote({ kind: 'attribute', tag: 'Presença', text: success ? 'Um som fora do lugar chama sua atenção.' : 'Só o vento.' }); setPendingCheck(null); } });
-    } else if (/\b(forçar|quebrar|empurrar|levantar|escalar|correr)\b/.test(normalized)) {
-      setPendingCheck({ label: text, attribute: 'vigor', dc: 12, onResolved: (success) => { setNote({ kind: 'attribute', tag: 'Vigor', text: success ? 'Você consegue, com esforço.' : 'Não dessa vez — o corpo cobra o preço da tentativa.' }); setPendingCheck(null); } });
-    } else if (normalized.length > 240) {
-      setNote({ kind: 'narrator', text: 'Isso é ambicioso demais para agora — tente algo mais direto.' });
-    } else {
-      setNote({ kind: 'narrator', text: `Você tenta: "${text}". Nada muda de forma perceptível, mas a tentativa fica registrada.` });
+    setInterpreting(true);
+
+    const npc = NPCS.find((n) => n.location === location.id && n.alive);
+    const context = buildNarrativeContext(save, location, sceneId, {
+      npcId: npc?.id,
+      npcName: npc?.name,
+    });
+
+    let interpreted: InterpretedAction;
+    try {
+      interpreted = await narrativeEngine.interpretFreeText(text, context);
+    } catch {
+      // Degradação explícita — nunca finge sucesso silencioso (spec §Crítico-2).
+      interpreted = {
+        kind: 'partial',
+        reason: 'A narrativa não conseguiu processar isso agora. Tente descrever de outro jeito.',
+      };
+    }
+    setInterpreting(false);
+
+    const logWitnessedEvent = (result: string, tags: string[]) => {
+      updateAndPersist((draft) => {
+        draft.worldEvents = appendWorldEvent(draft.worldEvents, {
+          actor: draft.character!.name,
+          action: text,
+          target: npc?.id,
+          location: location.id,
+          witnesses: npc ? [npc.id] : [],
+          result,
+          tags,
+        });
+      });
+    };
+
+    if (interpreted.kind === 'requires_check') {
+      const attribute = interpreted.requestedCheck?.attribute ?? 'mente';
+      const dc = interpreted.requestedCheck?.suggestedDc ?? 12;
+      const reason = interpreted.requestedCheck?.reason ?? text;
+      setPendingCheck({
+        label: text,
+        attribute,
+        dc,
+        onResolved: (success) => {
+          const result = success
+            ? `${reason} Você consegue.`
+            : `${reason} Não dessa vez — mas a tentativa não passa em branco.`;
+          setNote({ kind: 'attribute', tag: ATTR_TAG[attribute], text: result });
+          logWitnessedEvent(result, ['acao-livre']);
+          setPendingCheck(null);
+        },
+      });
+      return;
+    }
+
+    const narration = interpreted.reason ?? 'Nada muda de forma perceptível, mas a tentativa fica registrada.';
+    setNote({ kind: 'narrator', text: narration });
+    if (interpreted.kind === 'possible' || interpreted.kind === 'partial') {
+      logWitnessedEvent(narration, ['acao-livre']);
     }
   }
 
@@ -533,14 +592,21 @@ export function SceneScreen() {
 
       {!insight && composerOpen && (
         <div className="composer-sheet">
-          <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Outra ação</p>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', justifyContent: 'space-between' }}>
+            <span>Outra ação</span>
+            {/* Nunca finge IA remota operacional quando está em modo local (spec §Crítico-2). */}
+            <span style={{ opacity: 0.7, textTransform: 'none', letterSpacing: 0 }}>
+              {narrativeEngine.connectionState === 'remote' ? 'narrativa conectada' : 'narrativa local'}
+            </span>
+          </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               autoFocus
               value={freeText}
               onChange={(e) => setFreeText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && submitFreeAction()}
+              onKeyDown={(e) => e.key === 'Enter' && !interpreting && submitFreeAction()}
               placeholder="O que você faz?"
+              disabled={interpreting}
               style={{
                 flex: 1,
                 background: 'rgba(18,15,36,0.7)',
@@ -551,7 +617,9 @@ export function SceneScreen() {
                 fontSize: 14,
               }}
             />
-            <MysticButton variant="primary" onClick={submitFreeAction}>Ir</MysticButton>
+            <MysticButton variant="primary" onClick={submitFreeAction} disabled={interpreting}>
+              {interpreting ? '…' : 'Ir'}
+            </MysticButton>
           </div>
           <MysticButton variant="ghost" style={{ marginTop: 8, width: '100%' }} onClick={() => setComposerOpen(false)}>
             Cancelar
