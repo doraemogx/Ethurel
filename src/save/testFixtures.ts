@@ -1,13 +1,30 @@
-import type { SaveDataV1, SaveDataV2, PlayerSaveState } from '@/save/schema';
+import type { SaveDataV1, SaveDataV2, SaveDataV3, PlayerSaveState, CharacterSaveStateV3 } from '@/save/schema';
 
 /** Fixtures de saves de schema antigo, só para testar a cadeia de migração
  * (não usado em runtime do jogo). */
-export function createEmptySaveV1V2Fixture(version: 1, player?: never): SaveDataV1;
-export function createEmptySaveV1V2Fixture(version: 2, player: PlayerSaveState): SaveDataV2;
-export function createEmptySaveV1V2Fixture(version: 1 | 2, player?: PlayerSaveState): SaveDataV1 | SaveDataV2 {
+export function createSaveV1Fixture(): SaveDataV1 {
   const now = Date.now();
-  if (version === 1) {
-    return { schemaVersion: 1, sessionCount: 3, createdAt: now, updatedAt: now };
-  }
-  return { schemaVersion: 2, sessionCount: 3, player: player!, createdAt: now, updatedAt: now };
+  return { schemaVersion: 1, sessionCount: 3, createdAt: now, updatedAt: now };
+}
+
+export function createSaveV2Fixture(player: PlayerSaveState): SaveDataV2 {
+  const now = Date.now();
+  return { schemaVersion: 2, sessionCount: 3, player, createdAt: now, updatedAt: now };
+}
+
+export function createSaveV3Fixture(character: CharacterSaveStateV3 | null): SaveDataV3 {
+  const now = Date.now();
+  return {
+    schemaVersion: 3,
+    sessionCount: 3,
+    player: { mapId: 'varreth-arredores', x: 100, y: 100 },
+    character,
+    indole: {},
+    reputation: {},
+    quests: {},
+    worldFlags: {},
+    audio: { soundOn: true },
+    createdAt: now,
+    updatedAt: now,
+  };
 }

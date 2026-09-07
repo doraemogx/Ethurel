@@ -3,9 +3,8 @@
  * anomalia perto da Raiz Rompida, ver quest "O que a raiz sussurrou").
  * Números são hipótese de trabalho, mesmo status das habilidades em
  * src/data/classes.ts (gate de balanceamento formal fica para depois).
- * Sprite: `Assets/Battle Sprites/Living/slime.png` (ansimuz, CC0) — uma
- * criatura orgânica de olho único e tentáculos, coerente com "algo reage
- * discretamente ao Arcane" sem precisar explicar a causa definitiva.
+ * Sem arte final — representado na UI por um motivo visual orgânico
+ * (silhueta/gradiente), nunca pixel art procedural (spec §65).
  */
 import type { Enemy } from '@/combat/types';
 
@@ -21,7 +20,6 @@ export const ENEMIES: Enemy[] = [
     lootTable: [],
     xp: 15,
     arcaneAffinity: 'controle',
-    sprite: 'ansimuz-slime',
-    animations: { idle: 'static', attack: 'static', hit: 'tint-flash', death: 'fade-out' },
+    visualKey: 'limo-da-fissura',
   },
 ];

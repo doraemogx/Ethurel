@@ -1,0 +1,73 @@
+import { useState } from 'react';
+import { SceneBackdrop } from '@/ui/components/SceneBackdrop';
+import { MysticButton } from '@/ui/components/MysticButton';
+import { sceneArtFor } from '@/ui/visual/sceneArt';
+import { loadSettings, saveSettings } from '@/save/settingsStore';
+import { audioManager } from '@/audio/AudioManager';
+import type { GameSettings } from '@/save/schema';
+
+export interface SettingsScreenProps {
+  onBack: () => void;
+}
+
+/** Configurações globais (spec §48): música, SFX, velocidade de texto,
+ * reduzir movimento — importante porque a UI tem efeitos de tela (spec §14). */
+export function SettingsScreen({ onBack }: SettingsScreenProps) {
+  const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
+
+  const update = (patch: Partial<GameSettings>) => {
+    const next = { ...settings, ...patch };
+    setSettings(next);
+    saveSettings(next);
+    if (patch.reduceMotion !== undefined) document.documentElement.classList.toggle('reduce-motion', patch.reduceMotion);
+    if (patch.musicOn !== undefined) audioManager.setMusicOn(patch.musicOn);
+    if (patch.sfxOn !== undefined) audioManager.setSfxOn(patch.sfxOn);
+  };
+
+  return (
+    <div className="screen">
+      <SceneBackdrop art={sceneArtFor('archive')} reduceMotion={settings.reduceMotion} />
+      <div className="screen__content">
+        <h2 style={{ fontWeight: 400, textAlign: 'center' }}>Configurações</h2>
+        <div className="stack" style={{ marginTop: 20 }}>
+          <SettingRow label="Música" checked={settings.musicOn} onChange={(v) => update({ musicOn: v })} />
+          <SettingRow label="Efeitos sonoros" checked={settings.sfxOn} onChange={(v) => update({ sfxOn: v })} />
+          <SettingRow label="Reduzir movimento" checked={settings.reduceMotion} onChange={(v) => update({ reduceMotion: v })} />
+          <div className="slot-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Texto</span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <MysticButton
+                variant={settings.textSpeed === 'instant' ? 'primary' : 'ghost'}
+                style={{ padding: '6px 12px', fontSize: 12 }}
+                onClick={() => update({ textSpeed: 'instant' })}
+              >
+                Instantâneo
+              </MysticButton>
+              <MysticButton
+                variant={settings.textSpeed === 'animated' ? 'primary' : 'ghost'}
+                style={{ padding: '6px 12px', fontSize: 12 }}
+                onClick={() => update({ textSpeed: 'animated' })}
+              >
+                Animado
+              </MysticButton>
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+          <MysticButton variant="ghost" onClick={onBack}>
+            Voltar
+          </MysticButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button className="slot-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => onChange(!checked)}>
+      <span>{label}</span>
+      <span className="status-chip">{checked ? 'ON' : 'OFF'}</span>
+    </button>
+  );
+}

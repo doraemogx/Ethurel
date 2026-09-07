@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { getQuestState, setQuestState } from '@/quest/QuestState';
-import { createEmptySaveV3 } from '@/save/schema';
+import { createEmptySaveV4 } from '@/save/schema';
 
 describe('QuestState', () => {
   it('progride not_started -> active -> objective_complete -> completed', () => {
-    const save = createEmptySaveV3();
+    const save = createEmptySaveV4();
     expect(getQuestState(save, 'raiz-sussurrou')).toBe('not_started');
 
     setQuestState(save, 'raiz-sussurrou', 'active');
@@ -18,7 +18,7 @@ describe('QuestState', () => {
   });
 
   it('quests distintas não interferem entre si', () => {
-    const save = createEmptySaveV3();
+    const save = createEmptySaveV4();
     setQuestState(save, 'quest-a', 'active');
     expect(getQuestState(save, 'quest-b')).toBe('not_started');
   });

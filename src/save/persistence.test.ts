@@ -1,21 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadOrCreateSave, forceSave } from '@/save/gameSave';
+import { loadSlot, forceSave } from '@/save/gameSave';
 import { setQuestState } from '@/quest/QuestState';
-import { createInitialIndole, createInitialReputation, resolveWorldEvent, type IndoleState, type ReputationState } from '@/social/indole';
+import { resolveWorldEvent, type IndoleState, type ReputationState } from '@/social/indole';
+import { createCharacterModel } from '@/domain/characterFactory';
+import { WorldEventLog } from '@/domain/worldEvents';
 
-describe('Persistência: quest/reputação/índole sobrevivem ao reload', () => {
+describe('Persistência: quest/reputação/índole/worldEvents sobrevivem ao reload', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
 
-  it('progresso de quest, Índole e Reputação persistem depois de um reload simulado', () => {
-    const save = loadOrCreateSave();
-    save.indole = createInitialIndole();
-    save.reputation = createInitialReputation();
+  it('progresso de quest, Índole, Reputação e WorldEventLog persistem depois de um reload simulado', () => {
+    const save = loadSlot('slot1');
+    save.character = createCharacterModel({ name: 'Aldric', gender: 'homem', classId: 'portador-de-cinza', originId: 'cinzas-longas' });
     setQuestState(save, 'raiz-sussurrou', 'objective_complete');
 
     const social = resolveWorldEvent(
-      { indole: save.indole as IndoleState, reputation: save.reputation as ReputationState },
+      { indole: save.character.indole as IndoleState, reputation: save.character.reputation as ReputationState },
       {
         id: 'raiz-sussurrou:reportou',
         indoleDelta: [{ trait: 'honra', delta: 3 }],
@@ -23,15 +24,21 @@ describe('Persistência: quest/reputação/índole sobrevivem ao reload', () => 
         witnesses: 'public',
       }
     );
-    save.indole = social.indole;
-    save.reputation = social.reputation;
+    save.character.indole = social.indole;
+    save.character.reputation = social.reputation;
     setQuestState(save, 'raiz-sussurrou', 'completed');
-    forceSave(save);
 
-    // "Reload": nova leitura do zero.
-    const reloaded = loadOrCreateSave();
+    const log = new WorldEventLog(save.worldEvents);
+    log.record({ actor: 'player', action: 'reportou a descoberta', location: 'varreth', witnesses: ['tolven'], result: 'reputação com Varreth aumentou', tags: ['raiz-sussurrou'] });
+    save.worldEvents = log.toJSON();
+
+    forceSave('slot1', save);
+
+    const reloaded = loadSlot('slot1');
     expect(reloaded.quests['raiz-sussurrou']).toBe('completed');
-    expect(reloaded.indole.honra).toBe(3);
-    expect(reloaded.reputation.varreth).toBe(5);
+    expect(reloaded.character?.indole.honra).toBe(3);
+    expect(reloaded.character?.reputation.varreth).toBe(5);
+    expect(reloaded.worldEvents.length).toBe(1);
+    expect(reloaded.worldEvents[0].tags).toContain('raiz-sussurrou');
   });
 });

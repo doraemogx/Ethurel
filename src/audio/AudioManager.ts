@@ -1,97 +1,92 @@
-import Phaser from 'phaser';
-
 /**
- * AudioManager central — música/ambiente/SFX/UI, com unlock em gesto do
- * usuário (WebAudio em mobile não toca sem interação) e crossfade simples ao
- * trocar de música. `init(game)` é chamado uma vez no boot (main.ts); as
- * cenas só chamam `playMusic`/`playSfx`/`setMuted`, nunca tocam áudio
- * diretamente, para nunca haver duas músicas simultâneas por acidente.
+ * AudioManager — HTML5 Audio puro (sem Phaser Sound). Categorias: music,
+ * ambient, sfx, ui (spec §46). Nunca toca duas músicas ao mesmo tempo;
+ * crossfade simples ao trocar. Requer gesto do usuário para desbloquear
+ * (mobile) — `unlock()` é chamado no primeiro toque da UI.
  */
-type MusicOptions = { loop?: boolean; volume?: number };
+type Category = 'music' | 'ambient' | 'sfx' | 'ui';
 
-const MUSIC_VOLUME = 0.55;
-const SFX_VOLUME = 0.7;
-const FADE_MS = 350;
 const FADE_STEPS = 8;
+const FADE_MS = 300;
 
-export class AudioManager {
-  private soundManager: Phaser.Sound.BaseSoundManager | null = null;
-  private muted = false;
+class AudioManagerImpl {
+  private unlocked = false;
+  private musicOn = true;
+  private sfxOn = true;
+  private currentMusic: HTMLAudioElement | null = null;
   private currentMusicKey: string | null = null;
-  private currentMusic: Phaser.Sound.BaseSound | null = null;
-  private pendingUnlockCalls: (() => void)[] = [];
+  private cache = new Map<string, HTMLAudioElement>();
 
-  init(game: Phaser.Game): void {
-    this.soundManager = game.sound;
-    if (this.soundManager.locked) {
-      this.soundManager.once(Phaser.Sound.Events.UNLOCKED, () => {
-        for (const fn of this.pendingUnlockCalls) fn();
-        this.pendingUnlockCalls = [];
-      });
+  setMusicOn(on: boolean): void {
+    this.musicOn = on;
+    if (!on) this.stopMusic();
+  }
+
+  setSfxOn(on: boolean): void {
+    this.sfxOn = on;
+  }
+
+  unlock(): void {
+    if (this.unlocked) return;
+    this.unlocked = true;
+  }
+
+  private getAudio(url: string): HTMLAudioElement {
+    let audio = this.cache.get(url);
+    if (!audio) {
+      audio = new Audio(url);
+      this.cache.set(url, audio);
     }
+    return audio;
   }
 
-  setMuted(muted: boolean): void {
-    this.muted = muted;
-    if (this.soundManager) this.soundManager.mute = muted;
-  }
-
-  isMuted(): boolean {
-    return this.muted;
-  }
-
-  private runWhenUnlocked(fn: () => void): void {
-    if (!this.soundManager) return;
-    if (this.soundManager.locked) this.pendingUnlockCalls.push(fn);
-    else fn();
-  }
-
-  playMusic(key: string, opts: MusicOptions = {}): void {
-    if (!this.soundManager) return;
-    if (this.currentMusicKey === key) return; // já tocando, evita reiniciar/duplicar
-    this.runWhenUnlocked(() => this.crossfadeTo(key, opts));
-  }
-
-  private crossfadeTo(key: string, opts: MusicOptions): void {
-    if (!this.soundManager) return;
-    const targetVolume = (opts.volume ?? MUSIC_VOLUME) * (this.muted ? 0 : 1);
+  playMusic(url: string, loop = true): void {
+    if (this.currentMusicKey === url) return;
+    if (!this.musicOn) {
+      this.currentMusicKey = url;
+      return;
+    }
     const outgoing = this.currentMusic;
-    if (outgoing) this.fadeOutAndStop(outgoing);
+    if (outgoing) this.fade(outgoing, outgoing.volume, 0, () => outgoing.pause());
 
-    const sound = this.soundManager.add(key, { loop: opts.loop ?? true, volume: 0 });
-    sound.play();
-    this.currentMusic = sound;
-    this.currentMusicKey = key;
-    this.fadeVolume(sound, 0, targetVolume);
+    const audio = this.getAudio(url);
+    audio.loop = loop;
+    audio.volume = 0;
+    audio.currentTime = 0;
+    void audio.play().catch(() => {
+      /* autoplay bloqueado antes do gesto — silencioso, spec §63 */
+    });
+    this.fade(audio, 0, 0.55);
+    this.currentMusic = audio;
+    this.currentMusicKey = url;
   }
 
   stopMusic(): void {
-    if (this.currentMusic) this.fadeOutAndStop(this.currentMusic);
+    if (this.currentMusic) {
+      const audio = this.currentMusic;
+      this.fade(audio, audio.volume, 0, () => audio.pause());
+    }
     this.currentMusic = null;
     this.currentMusicKey = null;
   }
 
-  private fadeOutAndStop(sound: Phaser.Sound.BaseSound): void {
-    this.fadeVolume(sound, (sound as unknown as { volume: number }).volume ?? MUSIC_VOLUME, 0, () => sound.stop());
+  playSfx(url: string, _category: Category = 'sfx'): void {
+    if (!this.sfxOn) return;
+    const audio = this.getAudio(url).cloneNode(true) as HTMLAudioElement;
+    audio.volume = 0.7;
+    void audio.play().catch(() => {});
   }
 
-  private fadeVolume(sound: Phaser.Sound.BaseSound, from: number, to: number, onDone?: () => void): void {
-    const withVolume = sound as unknown as { volume: number };
+  private fade(audio: HTMLAudioElement, from: number, to: number, onDone?: () => void): void {
     let step = 0;
     const tick = () => {
       step += 1;
-      const t = step / FADE_STEPS;
-      withVolume.volume = from + (to - from) * t;
+      audio.volume = Math.max(0, Math.min(1, from + ((to - from) * step) / FADE_STEPS));
       if (step < FADE_STEPS) setTimeout(tick, FADE_MS / FADE_STEPS);
       else onDone?.();
     };
     tick();
   }
-
-  playSfx(key: string, volume = SFX_VOLUME): void {
-    if (!this.soundManager || this.muted) return;
-    this.runWhenUnlocked(() => this.soundManager?.play(key, { volume }));
-  }
 }
 
-export const audioManager = new AudioManager();
+export const audioManager = new AudioManagerImpl();

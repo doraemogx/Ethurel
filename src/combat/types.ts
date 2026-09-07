@@ -7,13 +7,6 @@ export interface EnemyStats {
   def: number;
 }
 
-export interface EnemyAnimations {
-  idle: string;
-  attack: string;
-  hit: string;
-  death: string;
-}
-
 export interface LootEntry {
   itemId: string;
   chance: number; // 0..1
@@ -34,6 +27,7 @@ export interface Enemy {
   lootTable: LootEntry[];
   xp: number;
   arcaneAffinity?: 'nenhuma' | ArcaneZone;
-  sprite: string;
-  animations: EnemyAnimations;
+  /** Chave de motivo visual usada pela UI de combate (cor/silhueta/tema) —
+   * não é mais um asset raster; ver src/ui/visual/enemyVisuals.ts. */
+  visualKey: string;
 }

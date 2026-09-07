@@ -2,115 +2,53 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0a16" />
+    <meta name="description" content="Ethurel — RPG narrativo cinematográfico com regras determinísticas e narração adaptativa." />
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="data:," />
     <title>Ethurel</title>
     <style>
+      :root {
+        color-scheme: dark;
+        --bg-void: #0b0a16;
+        --bg-deep: #120f24;
+        --violet-deep: #241a3d;
+        --violet: #4a3372;
+        --indigo: #362a63;
+        --accent: #9f7fe0;
+        --accent-soft: #c9b6f0;
+        --silver: #d8d3e6;
+        --text: #ece7fb;
+        --text-dim: #a79fc4;
+        --danger: #d9667a;
+        --gold: #d8b872;
+      }
+      * { box-sizing: border-box; }
       html, body {
         margin: 0;
         padding: 0;
-        background: #141a17;
-        overflow: hidden;
-        height: 100%;
         width: 100%;
+        height: 100%;
+        background: var(--bg-void);
+        color: var(--text);
+        overflow: hidden;
         overscroll-behavior: none;
+        font-family: 'Georgia', 'Iowan Old Style', serif;
+        -webkit-tap-highlight-color: transparent;
       }
-      #game-root {
+      #root {
         position: fixed;
         inset: 0;
-        /* Respeita safe areas (notch/barra de gestos) — docs/design/02-STACK-E-ARQUITETURA.md §9 */
-        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         display: flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
-      }
-      canvas {
-        image-rendering: pixelated;
-        image-rendering: -moz-crisp-edges;
-        image-rendering: crisp-edges;
-      }
-
-      /* Overlay de rotação — landscape é a orientação principal de Ethurel
-         (docs/design/02-STACK-E-ARQUITETURA.md §9). Em portrait, mostramos um
-         pedido elegante em vez do jogo espremido/deformado. */
-      #rotate-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 10000;
-        display: none;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 18px;
-        background: #141a17;
-        color: #e8dcc4;
-        font-family: Georgia, 'Times New Roman', serif;
-        text-align: center;
-        padding: 24px;
-        box-sizing: border-box;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
       }
-      #rotate-overlay .icon {
-        width: 44px;
-        height: 68px;
-        border: 3px solid #c9b98a;
-        border-radius: 6px;
-        position: relative;
-        animation: rotate-hint 1.8s ease-in-out infinite;
-      }
-      #rotate-overlay .icon::after {
-        content: '';
-        position: absolute;
-        bottom: 8px;
-        left: 50%;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #c9b98a;
-        transform: translateX(-50%);
-      }
-      @keyframes rotate-hint {
-        0%, 100% { transform: rotate(0deg); }
-        50% { transform: rotate(-90deg); }
-      }
-      #rotate-overlay p {
-        margin: 0;
-        font-size: 15px;
-        letter-spacing: 0.02em;
-        max-width: 26em;
-      }
-      #rotate-overlay p.small {
-        font-family: sans-serif;
-        font-size: 11px;
-        color: #9aa08c;
-      }
-
-      /* Portrait: esconde o jogo, mostra o pedido de rotação.
-         Esta media query é só o estado ANTES do JS assumir (evita flash
-         errado no primeiro paint). Depois que `src/core/orientation.ts`
-         carrega, quem manda é a classe `.is-portrait`/`.is-landscape` em
-         <html>, recalculada a cada resize/orientationchange/visibilitychange
-         a partir de innerWidth/innerHeight reais — não só da media query,
-         que sozinha era a causa do overlay "preso" ao girar fisicamente o
-         aparelho (ver src/core/orientation.ts). */
-      @media (orientation: portrait) {
-        #game-root { display: none; }
-        #rotate-overlay { display: flex; }
-      }
-      html.is-portrait #game-root { display: none; }
-      html.is-portrait #rotate-overlay { display: flex; }
-      html.is-landscape #game-root { display: flex; }
-      html.is-landscape #rotate-overlay { display: none; }
     </style>
   </head>
   <body>
-    <div id="game-root"></div>
-    <div id="rotate-overlay">
-      <div class="icon"></div>
-      <p>Gire seu aparelho para jogar Ethurel</p>
-      <p class="small">Ethurel é feito para celular deitado (landscape).</p>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

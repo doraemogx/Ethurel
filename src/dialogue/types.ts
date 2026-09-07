@@ -1,9 +1,10 @@
+export type PortraitExpression = 'neutral' | 'happy' | 'angry' | 'sad' | 'afraid' | 'hurt';
+
 export interface DialogueLine {
+  speakerId: string;
   speakerName: string;
   text: string;
-  /** Índice de frame em `assets/ansimuz/portraits/npc-faces.png` (grade
-   * 16×16, ver CREDITS.md) — omitido para falar sem portrait. */
-  portraitFrame?: number;
+  expression?: PortraitExpression;
 }
 
 export interface DialogueChoice {
@@ -13,7 +14,5 @@ export interface DialogueChoice {
 
 export interface DialogueNode {
   lines: DialogueLine[];
-  /** Se presente, mostrado depois da última linha; `onResolve` recebe o id
-   * escolhido. Se ausente, o diálogo só fecha (toque para avançar/fechar). */
   choices?: DialogueChoice[];
 }

@@ -1,84 +1,106 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadOrCreateSave, hasContinuableSave, forceSave, scheduleSave, flushSave } from '@/save/gameSave';
-import { createEmptySaveV1V2Fixture } from '@/save/testFixtures';
+import { loadSlot, listSlotSummaries, hasAnyContinuableSave, forceSave, scheduleSave, flushSave, deleteSlot } from '@/save/gameSave';
+import { createSaveV1Fixture, createSaveV2Fixture, createSaveV3Fixture } from '@/save/testFixtures';
 import { saveStore } from '@/save/SaveStore';
-import { VARRETH_OUTSKIRTS_MAP_ID, type CharacterSaveState } from '@/save/schema';
+import { createCharacterModel } from '@/domain/characterFactory';
 
-const SAVE_KEY = 'save_slot_1';
-
-function makeCharacter(): CharacterSaveState {
-  return {
-    name: 'Aldric',
-    gender: 'homem',
-    appearance: { skinTone: 'clara', hairStyle: 'curto', hairColor: 'castanho', sigilAccent: 'esmeralda' },
-    classId: 'portador-de-cinza',
-    originId: 'cinzas-longas',
-    hp: 36,
-    maxHp: 36,
-    arcaneFocus: 19,
-    arcaneMax: 19,
-    tension: 0,
-    marca: 0,
-    xp: 0,
-    level: 1,
-  };
-}
-
-describe('gameSave', () => {
+describe('gameSave (multi-slot, v4)', () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.useRealTimers();
   });
 
-  it('new game -> save -> reload -> continue: personagem e posição sobrevivem', () => {
-    const save = loadOrCreateSave();
-    save.character = makeCharacter();
-    save.player = { mapId: VARRETH_OUTSKIRTS_MAP_ID, x: 123, y: 456 };
-    forceSave(save);
+  it('new game -> save -> reload -> continue: personagem e local sobrevivem', () => {
+    const save = loadSlot('slot1');
+    save.character = createCharacterModel({ name: 'Aldric', gender: 'homem', classId: 'portador-de-cinza', originId: 'cinzas-longas' });
+    save.currentLocationId = 'estrada-velha';
+    forceSave('slot1', save);
 
-    expect(hasContinuableSave()).toBe(true);
+    expect(hasAnyContinuableSave()).toBe(true);
 
-    // "Reload": carrega de novo do zero, como se fosse uma nova sessão.
-    const reloaded = loadOrCreateSave();
+    const reloaded = loadSlot('slot1');
     expect(reloaded.character?.name).toBe('Aldric');
-    expect(reloaded.player).toEqual({ mapId: VARRETH_OUTSKIRTS_MAP_ID, x: 123, y: 456 });
+    expect(reloaded.currentLocationId).toBe('estrada-velha');
   });
 
-  it('sem personagem criado, não há save continuável', () => {
-    const save = loadOrCreateSave();
-    expect(save.character).toBeNull();
-    expect(hasContinuableSave()).toBe(false);
+  it('slots vazios não aparecem como continuáveis', () => {
+    expect(hasAnyContinuableSave()).toBe(false);
+    const summaries = listSlotSummaries();
+    expect(summaries.every((s) => !s.occupied)).toBe(true);
   });
 
-  it('scheduleSave faz debounce (não grava sincronamente) e flushSave força gravação pendente', () => {
+  it('3 slots são independentes entre si', () => {
+    const s1 = loadSlot('slot1');
+    s1.character = createCharacterModel({ name: 'Aldric', gender: 'homem', classId: 'portador-de-cinza', originId: 'cinzas-longas' });
+    forceSave('slot1', s1);
+
+    const s2 = loadSlot('slot2');
+    expect(s2.character).toBeNull();
+
+    const summaries = listSlotSummaries();
+    expect(summaries.find((s) => s.slot === 'slot1')?.characterName).toBe('Aldric');
+    expect(summaries.find((s) => s.slot === 'slot2')?.occupied).toBe(false);
+  });
+
+  it('deleteSlot remove o save do slot', () => {
+    const s1 = loadSlot('slot1');
+    s1.character = createCharacterModel({ name: 'Aldric', gender: 'homem', classId: 'portador-de-cinza', originId: 'cinzas-longas' });
+    forceSave('slot1', s1);
+    expect(hasAnyContinuableSave()).toBe(true);
+
+    deleteSlot('slot1');
+    expect(hasAnyContinuableSave()).toBe(false);
+  });
+
+  it('scheduleSave faz debounce e flushSave força a gravação pendente', () => {
     vi.useFakeTimers();
-    const save = loadOrCreateSave();
-    save.character = makeCharacter();
-    scheduleSave(save);
+    const save = loadSlot('slot1');
+    save.character = createCharacterModel({ name: 'Aldric', gender: 'homem', classId: 'portador-de-cinza', originId: 'cinzas-longas' });
+    scheduleSave('slot1', save);
 
-    // Ainda não deveria ter gravado (debounce).
-    const raw = window.localStorage.getItem('ethurel::' + SAVE_KEY);
-    expect(raw).toBeNull();
+    expect(window.localStorage.getItem('ethurel::save_slot1')).toBeNull();
 
-    flushSave(save);
-    const rawAfter = window.localStorage.getItem('ethurel::' + SAVE_KEY);
-    const parsedAfter = JSON.parse(rawAfter!);
-    expect(parsedAfter.character.name).toBe('Aldric');
+    flushSave('slot1', save);
+    const raw = window.localStorage.getItem('ethurel::save_slot1');
+    expect(JSON.parse(raw!).character.name).toBe('Aldric');
     vi.useRealTimers();
   });
 
-  it('migra um save v1 (fixture legado) preservando o que é possível', () => {
-    saveStore.save(SAVE_KEY, createEmptySaveV1V2Fixture(1));
-    const migrated = loadOrCreateSave();
-    expect(migrated.schemaVersion).toBe(3);
+  it('migra um save v1 legado (chave única) para v4', () => {
+    saveStore.save('save_slot_1', createSaveV1Fixture());
+    const migrated = loadSlot('slot1');
+    expect(migrated.schemaVersion).toBe(4);
     expect(migrated.character).toBeNull();
   });
 
-  it('migra um save v2 (posição/mapa, sem personagem) preservando a posição', () => {
-    saveStore.save(SAVE_KEY, createEmptySaveV1V2Fixture(2, { mapId: VARRETH_OUTSKIRTS_MAP_ID, x: 10, y: 20 }));
-    const migrated = loadOrCreateSave();
-    expect(migrated.schemaVersion).toBe(3);
-    expect(migrated.player).toEqual({ mapId: VARRETH_OUTSKIRTS_MAP_ID, x: 10, y: 20 });
+  it('migra um save v2 legado (posição top-down) para v4 — nasce como campanha nova', () => {
+    saveStore.save('save_slot_1', createSaveV2Fixture({ mapId: 'varreth-arredores', x: 10, y: 20 }));
+    const migrated = loadSlot('slot1');
+    expect(migrated.schemaVersion).toBe(4);
     expect(migrated.character).toBeNull();
+    expect(migrated.currentLocationId).toBe('varreth');
+  });
+
+  it('migra um save v3 legado (personagem top-down) para v4 — nasce como campanha nova, preservando createdAt', () => {
+    const v3 = createSaveV3Fixture({
+      name: 'Aldric',
+      gender: 'homem',
+      appearance: { skinTone: 'clara', hairStyle: 'curto', hairColor: 'castanho', sigilAccent: 'esmeralda' },
+      classId: 'portador-de-cinza',
+      originId: 'cinzas-longas',
+      hp: 36,
+      maxHp: 36,
+      arcaneFocus: 19,
+      arcaneMax: 19,
+      tension: 0,
+      marca: 0,
+      xp: 0,
+      level: 1,
+    });
+    saveStore.save('save_slot_1', v3);
+    const migrated = loadSlot('slot1');
+    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.character).toBeNull(); // formatos incompatíveis, ver 003_to_004.ts
+    expect(migrated.createdAt).toBe(v3.createdAt);
   });
 });

@@ -1,105 +1,126 @@
 import { saveStore } from '@/save/SaveStore';
 import {
-  createEmptySaveV3,
+  createEmptySaveV4,
   CURRENT_SCHEMA_VERSION,
-  type PlayerSaveState,
   type SaveData,
   type SaveDataV1,
   type SaveDataV2,
   type SaveDataV3,
+  type SaveDataV4,
 } from '@/save/schema';
 import { migrate001To002 } from '@/save/migrations/001_to_002';
 import { migrate002To003 } from '@/save/migrations/002_to_003';
+import { migrate003To004 } from '@/save/migrations/003_to_004';
+import { CLASSES } from '@/data/classes';
 
-const SAVE_KEY = 'save_slot_1';
-const LEGACY_DEV_CHECK_KEY = 'dev_boot_check';
+export const SAVE_SLOT_IDS = ['slot1', 'slot2', 'slot3'] as const;
+export type SaveSlotId = (typeof SAVE_SLOT_IDS)[number];
 
-/** Só grava se `save` foi marcado sujo desde a última gravação (ver
- * `scheduleSave`/`flushSave` abaixo) — versão anterior gravava a cada 500ms
- * SEMPRE, independentemente de ter havido mudança real. */
-export function loadOrCreateSave(): SaveDataV3 {
-  const current = saveStore.load<SaveData>(SAVE_KEY);
-  if (current) {
-    if (current.schemaVersion === CURRENT_SCHEMA_VERSION) return current as SaveDataV3;
-    if (current.schemaVersion === 2) {
-      const migrated = migrate002To003(current as SaveDataV2);
-      saveStore.save(SAVE_KEY, migrated);
-      return migrated;
-    }
-    if (current.schemaVersion === 1) {
-      const v2 = migrate001To002(current as SaveDataV1);
-      const v3 = migrate002To003(v2);
-      saveStore.save(SAVE_KEY, v3);
-      return v3;
-    }
-    console.warn('[gameSave] schemaVersion não reconhecido, preservando save original sob backup.');
-    saveStore.save(`${SAVE_KEY}__backup_unrecognized`, current);
-    return createEmptySaveV3();
-  }
-
-  const legacy = saveStore.load<SaveDataV1>(LEGACY_DEV_CHECK_KEY);
-  if (legacy && legacy.schemaVersion === 1) {
-    const v2 = migrate001To002(legacy);
-    const v3 = migrate002To003(v2);
-    saveStore.save(SAVE_KEY, v3);
-    saveStore.delete(LEGACY_DEV_CHECK_KEY);
-    return v3;
-  }
-
-  return createEmptySaveV3();
+function slotKey(slot: SaveSlotId): string {
+  return `save_${slot}`;
 }
 
-/** Existe um save de personagem utilizável (para decidir New Game vs Continue
- * na tela de título) sem precisar carregar/migrar tudo primeiro. */
-export function hasContinuableSave(): boolean {
-  const current = saveStore.load<SaveData>(SAVE_KEY);
-  if (!current) return false;
-  if (current.schemaVersion === 3) return (current as SaveDataV3).character !== null;
-  return false;
+const LEGACY_SAVE_KEY = 'save_slot_1'; // chave única usada pelo protótipo top-down (v1-v3)
+
+function migrateToV4(data: SaveData): SaveDataV4 {
+  if (data.schemaVersion === 4) return data;
+  if (data.schemaVersion === 3) return migrate003To004(data as SaveDataV3);
+  if (data.schemaVersion === 2) return migrate003To004(migrate002To003(data as SaveDataV2));
+  return migrate003To004(migrate002To003(migrate001To002(data as SaveDataV1)));
+}
+
+/** Carrega um slot específico, migrando se necessário. Nunca lança. */
+export function loadSlot(slot: SaveSlotId): SaveDataV4 {
+  const current = saveStore.load<SaveData>(slotKey(slot));
+  if (current) {
+    if (current.schemaVersion === CURRENT_SCHEMA_VERSION) return current as SaveDataV4;
+    const migrated = migrateToV4(current);
+    saveStore.save(slotKey(slot), migrated);
+    return migrated;
+  }
+
+  // slot1 herda o save único do protótipo top-down, se existir (evita
+  // "perder" o único save que alguém possa ter de antes da reconstrução).
+  if (slot === 'slot1') {
+    const legacy = saveStore.load<SaveData>(LEGACY_SAVE_KEY);
+    if (legacy) {
+      const migrated = migrateToV4(legacy);
+      saveStore.save(slotKey(slot), migrated);
+      return migrated;
+    }
+  }
+
+  return createEmptySaveV4();
+}
+
+export interface SaveSlotSummary {
+  slot: SaveSlotId;
+  occupied: boolean;
+  characterName?: string;
+  className?: string;
+  locationId?: string;
+  updatedAt?: number;
+}
+
+export function listSlotSummaries(): SaveSlotSummary[] {
+  return SAVE_SLOT_IDS.map((slot) => {
+    const raw = saveStore.load<SaveData>(slotKey(slot)) ?? (slot === 'slot1' ? saveStore.load<SaveData>(LEGACY_SAVE_KEY) : null);
+    if (!raw) return { slot, occupied: false };
+    const data = migrateToV4(raw);
+    if (!data.character) return { slot, occupied: false };
+    const className = CLASSES.find((c) => c.id === data.character!.classId)?.name;
+    return {
+      slot,
+      occupied: true,
+      characterName: data.character.name,
+      className,
+      locationId: data.currentLocationId,
+      updatedAt: data.updatedAt,
+    };
+  });
+}
+
+export function hasAnyContinuableSave(): boolean {
+  return listSlotSummaries().some((s) => s.occupied);
 }
 
 // ---- Autosave: dirty-flag + debounce, nunca grava sem mudança real ----
 
-const DEBOUNCE_MS = 2000;
-let dirty = false;
-let debounceHandle: ReturnType<typeof setTimeout> | null = null;
+const DEBOUNCE_MS = 1500;
+const dirtySlots = new Set<SaveSlotId>();
+const debounceHandles = new Map<SaveSlotId, ReturnType<typeof setTimeout>>();
 
-function writeNow(save: SaveDataV3): void {
+function writeNow(slot: SaveSlotId, save: SaveDataV4): void {
   save.updatedAt = Date.now();
-  saveStore.save(SAVE_KEY, save);
-  dirty = false;
-  if (debounceHandle !== null) {
-    clearTimeout(debounceHandle);
-    debounceHandle = null;
+  saveStore.save(slotKey(slot), save);
+  dirtySlots.delete(slot);
+  const handle = debounceHandles.get(slot);
+  if (handle) {
+    clearTimeout(handle);
+    debounceHandles.delete(slot);
   }
 }
 
-/** Marca o save como sujo e agenda uma gravação debounced (no máx. 1 a cada
- * `DEBOUNCE_MS`, coalescendo qualquer número de chamadas nesse intervalo em
- * uma única escrita) — usar para mudanças de rotina (posição durante
- * movimento). Para eventos importantes (quest, decisão, fim de combate),
- * prefira `flushSave` (grava imediatamente). */
-export function scheduleSave(save: SaveDataV3): void {
-  dirty = true;
-  if (debounceHandle !== null) return;
-  debounceHandle = setTimeout(() => writeNow(save), DEBOUNCE_MS);
+export function scheduleSave(slot: SaveSlotId, save: SaveDataV4): void {
+  dirtySlots.add(slot);
+  if (debounceHandles.has(slot)) return;
+  debounceHandles.set(
+    slot,
+    setTimeout(() => writeNow(slot, save), DEBOUNCE_MS)
+  );
 }
 
-/** Grava imediatamente se houver mudança pendente — usar em visibilitychange
- * (app indo para background) e após eventos que não podem se perder. */
-export function flushSave(save: SaveDataV3): void {
-  if (!dirty) return;
-  writeNow(save);
+export function flushSave(slot: SaveSlotId, save: SaveDataV4): void {
+  if (!dirtySlots.has(slot)) return;
+  writeNow(slot, save);
 }
 
-/** Força gravação mesmo sem `dirty` (usar só logo após uma mutação síncrona
- * que o chamador sabe ser real, ex.: conclusão de criação de personagem). */
-export function forceSave(save: SaveDataV3): void {
-  dirty = true;
-  writeNow(save);
+export function forceSave(slot: SaveSlotId, save: SaveDataV4): void {
+  dirtySlots.add(slot);
+  writeNow(slot, save);
 }
 
-export function persistPlayerState(save: SaveDataV3, player: PlayerSaveState): void {
-  save.player = player;
-  scheduleSave(save);
+export function deleteSlot(slot: SaveSlotId): void {
+  saveStore.delete(slotKey(slot));
+  if (slot === 'slot1') saveStore.delete(LEGACY_SAVE_KEY);
 }

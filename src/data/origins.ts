@@ -2,9 +2,9 @@
  * As 5 origens, preservadas do handoff (Parte 22 — bônus/item confirmados pela
  * auditoria de código da v1). Os textos de `hook` (segredo) são rascunho — a
  * v1 os definia em `ETUREL_CURRENT_SOURCE.html`, não anexado ao handoff; ver
- * nota em `src/player/types.ts`.
+ * nota em `src/characters/types.ts`.
  */
-import type { OriginDefinition } from '@/player/types';
+import type { OriginDefinition } from '@/characters/types';
 
 export const ORIGINS: OriginDefinition[] = [
   {
