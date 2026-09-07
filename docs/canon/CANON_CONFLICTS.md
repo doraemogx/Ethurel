@@ -22,7 +22,15 @@ implica 2.560 unidades de informação únicas.
 **Recomendação:** ao ingerir Livro 0, usar só uma das 3 repetições como fonte
 (a primeira, 0.01-0.10); não tratar as 3 como conteúdo adicional.
 
-## §1 — Geografia: "Borda dos Musgos" e "Estrada Velha" não existem na V7 [CRÍTICO]
+## §1 — Geografia: "Borda dos Musgos" e "Estrada Velha" não existem na V7 [RESOLVIDO]
+
+> **Resolvido nesta rodada.** Ver `docs/canon/geography/orren-varreth-resolution.md`
+> para a resolução completa e fontes citadas (Livro 0.03 + Livro III.007-012
+> lidos por completo). Resumo: Varreth confirmada em Orren, `region` corrigido
+> em `src/data/locations.ts`; "Borda dos Musgos"/"Estrada Velha" preservadas
+> como microrregião/localidade dentro de Orren (não deletadas, não promovidas
+> a macrotterritório). Texto original do conflito mantido abaixo para
+> auditoria.
 
 **No jogo atual** (`src/data/locations.ts`, `docs/design/06-WORLD-NARRATIVE-BIBLE.md`,
 cânone herdado do handoff pré-V7): Varreth fica na região "Borda dos Musgos";
@@ -55,7 +63,19 @@ local/sub-região dentro de Orren (não contradiz, só precisa ser encaixado),
 ou (c) devem ser substituídos por nomenclatura V7 (Orren + o que a V7 chamar
 a estrada/rota relevante).
 
-## §2 — Ancestralidade: sistema inventado na Fase 3 colide com os 10 povos canônicos [ALTO]
+## §2 — Ancestralidade: sistema inventado na Fase 3 colide com os 10 povos canônicos [PARCIALMENTE RESOLVIDO]
+
+> **"Povo do Musgo Antigo" resolvido nesta rodada** — ver
+> `docs/canon/peoples/povo-do-musgo-antigo.md`. Nome e conceito preservados
+> (são canônicos, Livro IV.010-011); variante "Enraizados" corrigida para
+> "Guardiões de Raiz" (nome canônico); "Dispersos" já batia. Detalhes
+> biológicos específicos (bioluminescência etc.) não são contraditos pela V7
+> mas também não são confirmados por ela — preservados, sinalizados para
+> revisão futura, não é "sessão não conhecia a Bíblia" ≠ "não é cânone"
+> (distinção do usuário respeitada). **As outras 3 ancestralidades da Fase 3**
+> (Filhos da Pedra-Funda, Errantes da Estrada, Marcados do Selo) **não foram
+> comparadas ainda** contra os outros 9 povos canônicos do Livro IV — pendente,
+> fora do escopo desta rodada. Texto original do conflito mantido abaixo.
 
 **No jogo atual** (`src/data/ancestries.ts`, criado nesta mesma sessão, Fase
 3, ANTES deste prompt/Bíblia serem recebidos): 4 ancestralidades inventadas
@@ -92,7 +112,21 @@ começar") — mas isso é uma decisão de escopo (a V7 tem 10 povos × dezenas 
 sub-entradas cada; usar todos não é trivial) que cabe ao usuário aprovar
 antes de qualquer rework.
 
-## §3 — Personagens de Origem: 4 de 5 nomes batem, mas a fonte parece ser a mesma Bíblia [ALTO]
+## §3 — Personagens de Origem: 4 de 5 nomes batem, mas a fonte parece ser a mesma Bíblia [PARCIALMENTE RESOLVIDO — 3 BLOCKERS CANÔNICOS ABERTOS]
+
+> **Comparação campo a campo feita nesta rodada** contra `Livro VI.1-8`
+> completo (8 personagens × 8 sub-temas) — ver
+> `docs/canon/origin-characters/COMPARISON.md` para a tabela completa e a
+> análise. Resumo: "Serel" → "Sera" Doventh corrigido (só o nome — classe e
+> origem já batiam). **3 blockers canônicos registrados, não resolvidos
+> silenciosamente**: Ynara Voss (origem diverge: jogo diz Culto do Selo,
+> cânone diz Arquivo Vertido), Mireth Sable (classe E origem divergem —
+> jogo tem, por coincidência, o par canônico de Asera Morn, não implementada),
+> Corwin Thale (classe diverge: jogo diz Caçador de Fissuras, cânone diz
+> Arauto do Musgo). Corrigir os 3 exige reescrever background/segredo/
+> relações — trabalho de conteúdo fora do escopo autorizado nesta rodada
+> ("não redesenhe"); decisão do usuário pendente. Texto original do
+> conflito mantido abaixo.
 
 **No jogo atual** (`src/content/originCharacters.ts`, Fase 2): 5 Personagens
 de Origem — Serel Doventh, Ynara Voss, Doran Kessig, Mireth Sable, Corwin
@@ -163,7 +197,18 @@ narrativo marcante) corresponde ao *conceito* canônico ou é só uma
 coincidência de nome. Pendente de leitura mais profunda antes de assumir
 compatibilidade total.
 
-## §7 — Regra canônica explícita já violada pela implementação atual [CRÍTICO — ver REPO_AUDIT.md]
+## §7 — Regra canônica explícita já violada pela implementação atual [RESOLVIDO]
+
+> **Resolvido nesta rodada.** `SceneScreen.submitFreeAction` agora chama
+> `narrativeEngine.interpretFreeText` (local ou remoto), que passou de 4
+> categorias mortas (nunca chamadas) para ~13 categorias semânticas com
+> reconhecimento do NPC presente e um fallback final sempre contextual
+> (nunca a mesma frase para intenções diferentes) — ver
+> `src/ai/LocalNarrativeProvider.ts` e seus testes de roteamento em
+> `src/ai/LocalNarrativeProvider.test.ts`. Continua sendo reconhecimento de
+> padrão determinístico, não IA real — mas já não é mais o fallback genérico
+> que este item do cânone proíbe explicitamente. Texto original do conflito
+> mantido abaixo.
 
 `Livro 0.10 — Liberdade`: **"Ações livres devem receber interpretação
 contextual. Não existe fallback narrativo genérico para ações
@@ -179,13 +224,21 @@ tecnicamente, tanto um problema técnico quanto uma violação canônica direta.
 
 ## Resumo de severidade
 
-| # | Conflito | Severidade |
+| # | Conflito | Severidade | Status |
+|---|---|---|---|
+| 0 | Duplicação interna do Livro 0 | Baixo (nota de qualidade da fonte) | Informativo |
+| 1 | "Borda dos Musgos"/"Estrada Velha" ausentes da V7 | Crítico | **Resolvido** |
+| 2 | Ancestralidades da Fase 3 colidem com os 10 povos canônicos | Alto | Parcial (Musgo Antigo resolvido; outras 3 pendentes) |
+| 3 | Personagens de Origem: 4/5 nomes batem, 1 typo, 3 faltando | Alto | Parcial (nome corrigido; 3 blockers canônicos abertos) |
+| 4 | Tolven vs Tolven Marr (biografia a reconciliar) | Médio | Pendente |
+| 5 | Classes/Origens: sem conflito | — (informativo) | — |
+| 6 | Sistema de Ecos: nome coincide, mecanismo não verificado | Médio | Pendente |
+| 7 | Regra canônica de "sem fallback genérico" já violada | Crítico | **Resolvido** |
+
+### Blockers canônicos abertos (decisão do usuário necessária)
+
+| ID | Descrição | Documento |
 |---|---|---|
-| 0 | Duplicação interna do Livro 0 | Baixo (nota de qualidade da fonte) |
-| 1 | "Borda dos Musgos"/"Estrada Velha" ausentes da V7 | **Crítico** |
-| 2 | Ancestralidades da Fase 3 colidem com os 10 povos canônicos | Alto |
-| 3 | Personagens de Origem: 4/5 nomes batem, 1 typo, 3 faltando | Alto |
-| 4 | Tolven vs Tolven Marr (biografia a reconciliar) | Médio |
-| 5 | Classes/Origens: sem conflito | — (informativo) |
-| 6 | Sistema de Ecos: nome coincide, mecanismo não verificado | Médio |
-| 7 | Regra canônica de "sem fallback genérico" já violada | **Crítico** |
+| A | Ynara Voss: origem/facção do jogo (Culto do Selo) diverge do cânone (Arquivo Vertido) | `docs/canon/origin-characters/COMPARISON.md` |
+| B | Mireth Sable: classe E origem divergem (jogo tem, por coincidência, o par canônico de Asera Morn) | `docs/canon/origin-characters/COMPARISON.md` |
+| C | Corwin Thale: classe do jogo (Caçador de Fissuras) diverge do cânone (Arauto do Musgo) | `docs/canon/origin-characters/COMPARISON.md` |

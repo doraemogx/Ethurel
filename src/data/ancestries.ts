@@ -69,6 +69,15 @@ export const ANCESTRIES: AncestryDefinition[] = [
     ],
   },
   {
+    // Nome e as duas variantes ("Guardiões de Raiz"/"Dispersos") são canônicos
+    // (Bíblia V7, Livro IV.010-011, 0 conflito — ver docs/canon/CANON_CONFLICTS.md
+    // §2 e docs/canon/peoples/povo-do-musgo-antigo.md). A Bíblia confirma o
+    // nome e as duas variantes, mas seus textos de "biologia e variação" são
+    // template genérico sem detalhe biológico específico — a resposta
+    // bioluminescente e as marcas descritas abaixo são invenção da Fase 3
+    // (pré-Bíblia), não contradizem o cânone mas também não são confirmadas
+    // por ele; preservadas como worldbuilding do jogo, sinalizadas para
+    // revisão futura caso surja detalhe biológico canônico específico.
     id: 'musgo-antigo',
     name: 'Povo do Musgo Antigo',
     tagline: 'A Borda dos Musgos os reconhece antes de eles se apresentarem.',
@@ -81,8 +90,11 @@ export const ANCESTRIES: AncestryDefinition[] = [
     npcRecognitionHook: 'Quem vive perto da floresta reconhece as marcas na pele e trata o Musgo Antigo como alguém que "escuta a Borda dos Musgos melhor que qualquer um".',
     variants: [
       {
+        // id mantido ('enraizados') por estabilidade de save — só o nome
+        // exibido foi corrigido para bater com o cânone ("Guardiões de
+        // Raiz", não "Enraizados").
         id: 'enraizados',
-        name: 'Enraizados',
+        name: 'Guardiões de Raiz',
         description: 'Nunca deixou a Borda dos Musgos. As marcas são nítidas, a resposta à floresta é forte — e sair da região pesa de um jeito que outras ancestralidades não sentem.',
         flavorNote: 'Percepção mais forte em Borda dos Musgos; reconhecimento imediato por quem vive na região.',
       },

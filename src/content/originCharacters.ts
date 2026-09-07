@@ -18,8 +18,14 @@ import type { OriginCharacter } from '@/characters/types';
 
 export const ORIGIN_CHARACTERS: OriginCharacter[] = [
   {
+    // Nome canônico é "Sera Doventh" (Bíblia V7, Livro VI.1) — o jogo tinha
+    // "Serel" (typo de uma sessão anterior sem acesso à Bíblia). Classe
+    // (Guardião do Bastião) e origem/facção (Bastião Caído) já batiam
+    // exatamente com o cânone, corrigido só o nome. `id`/`visualProfile.id`
+    // mantidos ('serel-doventh') por estabilidade — não referenciados fora
+    // deste arquivo, mas trocar id sem necessidade não traz benefício.
     id: 'serel-doventh',
-    name: 'Serel Doventh',
+    name: 'Sera Doventh',
     gender: 'masculino',
     classId: 'guardiao-do-bastiao',
     originId: 'bastiao-caido',
@@ -27,7 +33,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
     catchphrase: 'Um juramento não pergunta se você ainda acredita nele.',
     shortHook: 'O último Doventh guarda um posto que não existe mais.',
     background:
-      'Sua Casa jurou proteger uma passagem contra incursões arcanas — até cair, há doze anos, numa noite que ninguém em Varreth quer explicar direito. Serel cresceu ouvindo que foi um ataque. Encontrou registros que sugerem outra coisa.',
+      'Sua Casa jurou proteger uma passagem contra incursões arcanas — até cair, há doze anos, numa noite que ninguém em Varreth quer explicar direito. Sera cresceu ouvindo que foi um ataque. Encontrou registros que sugerem outra coisa.',
     personalGoal: 'Restaurar o nome da Casa Doventh, nem que seja só aos próprios olhos.',
     fear: 'Que o que restaurar signifique admitir que a vergonha é real.',
     knownFact: 'Sabe que o selo partido da própria família ainda abre certas portas em Varreth, mesmo caído.',
@@ -35,7 +41,7 @@ export const ORIGIN_CHARACTERS: OriginCharacter[] = [
       'Ele suspeita que a Casa Doventh não caiu para uma incursão — caiu porque um antepassado seu negociou com o Culto do Selo para "conter" algo, e o preço saiu caro demais. Ele procura provas fingindo procurar vingança.',
     traits: ['formal', 'vigilante', 'leal a um nome que talvez não mereça'],
     startingRelationships: [
-      { npcId: 'tolven', affinity: 5, note: 'Tolven trata Serel com uma formalidade cautelosa — reconhece o selo da Casa Doventh na sua couraça e não sabe se isso é motivo de respeito ou de cuidado.' },
+      { npcId: 'tolven', affinity: 5, note: 'Tolven trata Sera com uma formalidade cautelosa — reconhece o selo da Casa Doventh na sua couraça e não sabe se isso é motivo de respeito ou de cuidado.' },
     ],
     uniqueTags: ['casa-bastiao', 'linhagem-cAida'],
     voiceStyle: 'Formal, medido, escolhe poucas palavras — desconfia de quem fala demais.',

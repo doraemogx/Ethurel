@@ -95,7 +95,95 @@ IV, VI, VII (750 entradas, só 3 lidas), VIII, IX, X, XI, XII, Apêndice A.
 6. `GLOSSARY.md` cresce incrementalmente conforme cada lote é ingerido —
    não é gerado de uma vez.
 
-Este plano não foi executado agora — a Fase 0 pedida pelo usuário é
-diagnóstico e planejamento, não ingestão completa ("NÃO tente depender de
-manter tudo simultaneamente no contexto" / "a estrutura exata pode ser
-melhorada tecnicamente" antes de produzir conteúdo em massa).
+Este plano não foi executado por completo na Fase 0 (diagnóstico) — a Fase 1
+autorizada nesta rodada implementou o primeiro pedaço concreto dele, descrito
+abaixo.
+
+## Fase 1 — o que foi construído nesta rodada
+
+Prioridades pedidas pelo usuário, em ordem: (1) CANON_CORE definitivo; (2)
+Entity Registry; (3) IDs estáveis; (4) Timeline estruturada; (5) Location
+hierarchy; (6) NPC registry; (7) Faction registry; (8) Knowledge model; (9)
+aliases/deprecated names; (10) canon conflict registry.
+
+**Construído (código, testado):**
+
+- **Entity Registry (prioridade 2)** — `src/canon/entityRegistry.ts` +
+  `src/canon/entityRegistry.test.ts` (11 testes). `CanonEntity` com o formato
+  exato pedido: `canonicalId`, `canonicalName`, `aliases`, `deprecatedAliases`,
+  `source`, `status`. `resolveCanonEntity(nome)` resolve nome canônico, alias
+  ou alias legado/depreciado para a MESMA entidade — é o mecanismo que
+  impede um nome histórico (ex.: "Serel Doventh", "Enraizados") de circular
+  como entidade separada por acidente.
+- **IDs estáveis (prioridade 3)** — aplicado em toda correção desta rodada:
+  `id`/`canonicalId` nunca mudou quando só o `name` exibido precisava de
+  correção (`ancestries.ts` variante "Enraizados"→"Guardiões de Raiz" manteve
+  `id: 'enraizados'`; `originCharacters.ts` "Serel"→"Sera" Doventh manteve
+  `id: 'serel-doventh'`) — nenhuma referência de save/código quebra.
+- **Aliases/deprecated names (prioridade 9)** — é o próprio mecanismo do
+  Entity Registry acima, não um sistema separado.
+- **Canon conflict registry (prioridade 10)** — já existia desde a Fase 0
+  (`CANON_CONFLICTS.md`), atualizado nesta rodada com os 3 novos "BLOCKER
+  CANÔNICO" (Ynara Voss, Mireth Sable, Corwin Thale — ver
+  `docs/canon/origin-characters/COMPARISON.md`) e o status resolvido de §1/
+  §2/§7. `canonBlockers()` no Entity Registry devolve programaticamente as
+  mesmas entidades bloqueadas, para uso futuro por ferramentas/testes.
+- **CANON_CORE definitivo (prioridade 1)** — atualizado (não recriado) para
+  refletir os itens resolvidos nesta rodada (§3 geografia, §10 ação livre).
+
+**Não construído nesta rodada (honestamente fora do escopo autorizado — "não
+redesenhe", "não invente conteúdo novo") — plano registrado, não fingido como
+pronto:**
+
+- **Timeline estruturada (prioridade 4)**: o Livro II (320 eventos
+  datados "a.P.") não foi lido em profundidade nesta rodada — só os títulos,
+  já catalogados na tabela acima. Implementar exigiria ler o corpo de 320
+  entradas e decidir quais são relevantes à fatia jogável atual (nenhuma, por
+  ora — a campanha do capítulo 1 não referencia eventos históricos
+  específicos). `WorldEventLog` (`src/domain/worldEvents.ts`, já
+  implementado desde a Fase 1 anterior) já cobre a timeline *de campanha* (o
+  que o jogador fez); a timeline *canônica pré-Ano-0* do Livro II é um
+  sistema separado, não iniciado.
+- **Location hierarchy (prioridade 5)**: parcialmente coberta pelo campo
+  `region` de `src/data/locations.ts` (corrigido nesta rodada para apontar
+  ao macrotterritório correto) + o novo Entity Registry (`kind: 'territory'`
+  vs `kind: 'location'`, com `notes` indicando o território de cada local).
+  Uma hierarquia completa (Território → Cidade → Bairro, como o Livro III
+  descreve para Varreth) não foi modelada em código — os bairros de Varreth
+  (`Livro III.008`) não foram lidos em detalhe específico (o corpo lido é o
+  texto-modelo genérico, sem nome de bairro concreto ainda extraído).
+- **NPC registry (prioridade 6)**: `src/data/npcs.ts` já existe (só Tolven,
+  1 entrada) — o Entity Registry agora também cataloga Tolven Marr
+  (`kind: 'npc'`, status `blocker` pela biografia canônica não reconciliada,
+  ver `CANON_CONFLICTS.md` §4). Os outros 149 NPCs-âncora do Livro VII não
+  foram lidos nem adicionados — fora de escopo (conteúdo novo).
+- **Faction registry (prioridade 7)**: Livro VIII (10 facções × 10 entradas)
+  não foi lido nesta rodada além do título já catalogado ("A Vigília", citada
+  em docs antigos, ainda não confirmada contra a V7). Nenhuma entrada de
+  facção foi adicionada ao Entity Registry ainda — precisaria de leitura
+  dedicada antes.
+- **Knowledge model (prioridade 8)**: `src/domain/knowledge.ts` já existe
+  (Fase 2, estados de conhecimento por save) mas não foi cruzado contra a
+  hierarquia de verdade do Livro 0.01 ("verdade autoral > fato histórico >
+  conhecimento institucional > testemunho > crença > rumor > propaganda >
+  hipótese", já citada em `CANON_CORE.md` §1) — fazer esse cruzamento é
+  trabalho de próxima rodada, não iniciado.
+
+## Exemplo de recall seletivo (agora possível com o que foi construído)
+
+O exemplo dado pelo usuário — uma cena em Varreth com Tolven e um jogador
+Portador-de-Cinza deveria recuperar só CANON_CORE + Varreth + o local
+específico + Tolven + Portador de Cinza + eventos de save relevantes, não a
+Bíblia inteira — já é mecanicamente possível com as peças construídas nesta
+rodada, mesmo sem uma função de composição dedicada ainda:
+
+```ts
+resolveCanonEntity('Varreth');          // -> location, região Orren
+resolveCanonEntity('Tolven');           // -> npc, status blocker (biografia pendente)
+resolveCanonEntity('Portador de Cinza'); // -> class, canonical
+worldEventLog.relevantTo({ location: 'varreth', limit: 6 }); // já existe, Fase 1 anterior
+```
+
+Compor essas quatro chamadas num único `buildSelectiveCanonContext()` (para
+uso por `NarrativeContextBuilder`) é o próximo passo natural, não feito nesta
+rodada para não expandir escopo além do pedido.

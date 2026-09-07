@@ -32,9 +32,11 @@ a perspectiva do personagem, não arbitra uma resposta editorial).
 > Partida, Cinzas Longas e Terras de Selka formam a macrogeografia inicial."
 
 8 territórios macro. **Varreth pertence a Orren** (confirmado por leitura
-direta de `Livro III.007`, não pelo Livro 0). "Borda dos Musgos" e "Estrada
-Velha" (regiões usadas pelo jogo atual) não aparecem em nenhum desses 8 nomes
-— ver `CANON_CONFLICTS.md` §1.
+direta de `Livro III.007-012` completo, não só o Livro 0). "Borda dos Musgos"
+e "Estrada Velha" não aparecem em nenhum desses 8 nomes, mas foram
+preservadas como microrregião/localidade dentro de Orren — **resolvido**,
+ver `docs/canon/geography/orren-varreth-resolution.md` e
+`CANON_CONFLICTS.md` §1.
 
 ## 4. Ano 0 (Livro 0.04)
 
@@ -98,12 +100,10 @@ só uma preferência de design — reforça que qualquer integração real de IA
 > "Ações livres devem receber interpretação contextual. Não existe fallback
 > narrativo genérico para ações compreensíveis."
 
-**Isto é cânone explícito, não só preferência de design** — e a implementação
-atual da "Outra ação..." (`SceneScreen.submitFreeAction`, regex sobre 3
-verbos + fallback genérico "Nada muda de forma perceptível...") **viola este
-princípio diretamente**. Ver `REPO_AUDIT.md` §Crítico-2. Esta é a única linha
-deste documento que já aponta uma contradição confirmada entre cânone e
-implementação — as demais são compatíveis ou ainda não comparadas.
+**Isto é cânone explícito, não só preferência de design.** A violação
+registrada (`SceneScreen.submitFreeAction` sobre regex de 3 verbos + fallback
+genérico, nunca sequer chamado ao `NarrativeEngine`) foi **resolvida nesta
+rodada** — ver `CANON_CONFLICTS.md` §7 e `src/ai/LocalNarrativeProvider.ts`.
 
 ## 11. Classes (Livro V.1–V.8) — confirmado compatível
 
@@ -125,12 +125,18 @@ futuro.
 
 ---
 
-**O que este documento explicitamente NÃO cobre ainda** (fora do escopo da
-Fase 0 — diagnóstico, não ingestão completa): Livro I (Arcane, 260 entradas),
-Livro II (cronologia, 320 entradas), Livro III (cidades, 240 entradas além de
-Varreth), Livro IV (povos/religiões, 255 entradas), Livro VI (8 personagens de
-origem canônicos), Livro VII (150 NPCs-âncora, 750 entradas), Livro VIII
-(facções, 100 entradas), Livro IX (bestiário, 100 entradas), Livro X
-(itens/relíquias, 100 entradas), Livro XI (arquitetura narrativa, 120
-entradas), Livro XII (80 assentamentos), Apêndice A (25 protocolos de
-coerência). Ver `CANON_INGESTION_PLAN.md`.
+**O que este documento explicitamente NÃO cobre ainda** (fora do escopo desta
+sessão — diagnóstico + duas correções críticas + resolução pontual de
+conflitos, não ingestão completa): Livro I (Arcane, 260 entradas), Livro II
+(cronologia, 320 entradas), Livro III completo (240 entradas além de
+Varreth), Livro IV completo (só Povo do Musgo Antigo foi lido, 235 entradas
+dos outros 9 povos ainda não), Livro VII (150 NPCs-âncora, só Tolven Marr
+parcialmente lido, ~740 entradas restantes), Livro VIII (facções, 100
+entradas), Livro IX (bestiário, 100 entradas), Livro X (itens/relíquias, 100
+entradas), Livro XI (arquitetura narrativa, 120 entradas), Livro XII (80
+assentamentos), Apêndice A (25 protocolos de coerência). Ver
+`CANON_INGESTION_PLAN.md`.
+
+**Livro VI (8 personagens de origem canônicos) foi lido por completo** nesta
+sessão (64 entradas) — ver `docs/canon/origin-characters/COMPARISON.md` para
+a comparação campo a campo contra os 5 personagens implementados no jogo.
