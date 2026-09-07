@@ -1,0 +1,18 @@
+# Copie para wrangler.toml e preencha antes de deployar (wrangler deploy).
+# NÃO commite o wrangler.toml preenchido se ele contiver qualquer valor
+# sensível — nesta configuração ele não deveria conter (a chave vai por
+# `wrangler secret put`, nunca aqui), mas revise antes de dar commit.
+
+name = "ethurel-narrative-proxy"
+main = "worker.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://doraemogx.github.io"
+
+# Namespace de KV para rate limiting — criar com:
+#   wrangler kv:namespace create RATE_LIMIT_KV
+# e colar o id retornado abaixo.
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "PREENCHER_APOS_CRIAR_O_NAMESPACE"
